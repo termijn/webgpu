@@ -341,14 +341,14 @@ WGPURequiredLimits Gpu::getRequiredLimits(WGPUAdapter adapter) const
 	setDefaults(requiredLimits.limits);
 
 	// We use at most 1 vertex attribute for now
-	requiredLimits.limits.maxVertexAttributes = 1;
+	requiredLimits.limits.maxVertexAttributes = 2;
 	// We should also tell that we use 1 vertex buffers
 	requiredLimits.limits.maxVertexBuffers = 1;
-	// Maximum size of a buffer is 6 vertices of 2 float each
-	requiredLimits.limits.maxBufferSize = 6 * 2 * sizeof(float);
+	// Maximum size of a buffer is 6 vertices of 5 float each
+	requiredLimits.limits.maxBufferSize = 6 * 5 * sizeof(float);
 	// Maximum stride between 2 consecutive vertices in the vertex buffer
-	requiredLimits.limits.maxVertexBufferArrayStride = 2 * sizeof(float);
-
+	requiredLimits.limits.maxVertexBufferArrayStride = 5 * sizeof(float);
+    requiredLimits.limits.maxInterStageShaderComponents = 3;
 	// These two limits are different because they are "minimum" limits,
 	// they are the only ones we are may forward from the adapter's supported
 	// limits.

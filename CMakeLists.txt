@@ -5,6 +5,8 @@ project(
     LANGUAGES CXX C
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_subdirectory(ext/sdl2)
 add_subdirectory(ext/webgpu)
 add_subdirectory(ext/sdl2webgpu)

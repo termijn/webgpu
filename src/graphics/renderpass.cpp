@@ -26,7 +26,7 @@ void RenderPass::render()
     renderPassColorAttachment.resolveTarget = nullptr;
     renderPassColorAttachment.loadOp        = WGPULoadOp_Clear;
     renderPassColorAttachment.storeOp       = WGPUStoreOp_Store;
-    renderPassColorAttachment.clearValue    = WGPUColor{0.9, 0.1, 0.2, 1.0};
+    renderPassColorAttachment.clearValue = WGPUColor{ 0.05, 0.05, 0.05, 1.0 };
 
 #ifndef WEBGPU_BACKEND_WGPU
     renderPassColorAttachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
@@ -59,7 +59,6 @@ void RenderPass::render()
 
     wgpuQueueSubmit(gpu.m_queue, 1, &command);
     wgpuCommandBufferRelease(command);
-    std::cout << "Command submitted." << std::endl;
 
 #if defined(WEBGPU_BACKEND_DAWN)
     wgpuDeviceTick(gpu.m_device);
