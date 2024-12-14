@@ -43,6 +43,7 @@ void RenderPass::render()
 
     wgpuRenderPassEncoderSetPipeline(renderPass, pipeline);
 
+    wgpuRenderPassEncoderSetIndexBuffer(renderPass, m_vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(m_vertexBuffer.m_indexBuffer));
     wgpuRenderPassEncoderSetVertexBuffer(renderPass,  0, m_vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(m_vertexBuffer.m_vertexBuffer));
 
     drawCommands(renderPass);
@@ -69,7 +70,7 @@ void RenderPass::render()
 
 void RenderPass::drawCommands(WGPURenderPassEncoder encoder)
 {
-    wgpuRenderPassEncoderDraw(encoder, m_vertexBuffer.m_vertexCount, 1, 0, 0);
+    wgpuRenderPassEncoderDrawIndexed(encoder, m_vertexBuffer.m_indexCount, 1, 0, 0, 0);
 }
 
 void RenderPass::createPipeline()

@@ -4,20 +4,11 @@
 VertexBuffer::VertexBuffer(Gpu &gpu) 
     : m_gpu(gpu)
 {
-    // Vertex buffer data
-    // There are 2 floats per vertex, one for x and one for y.
     std::vector<float> vertexData = {
-        // x0,  y0,  r0,  g0,  b0
-        -0.5, -0.5, 1.0, 0.0, 0.0,
-
-        // x1,  y1,  r1,  g1,  b1
-        +0.5, -0.5, 0.0, 1.0, 0.0,
-
-        // ...
-        +0.0,   +0.5, 0.0, 0.0, 1.0,
-        -0.55f, -0.5, 1.0, 1.0, 0.0,
-        -0.05f, +0.5, 1.0, 0.0, 1.0,
-        -0.55f, +0.5, 0.0, 1.0, 1.0
+        -0.5, 0.5, 1.0, 0.0, 0.0,
+        -0.5, -0.5, 0.0, 1.0, 0.0,
+         0.5,  0.5, 0.0, 0.0, 1.0,
+         0.5, -0.5, 0.0, 1.0, 0.0,
     };
     m_vertexCount = static_cast<uint32_t>(vertexData.size() / 5);
 
@@ -43,12 +34,33 @@ VertexBuffer::VertexBuffer(Gpu &gpu)
     m_vertexBufferLayout.attributes     = m_vertexAttribs.data();
     m_vertexBufferLayout.arrayStride    = 5 * sizeof(float);
     m_vertexBufferLayout.stepMode       = WGPUVertexStepMode_Vertex;
+
+    // Define index data
+    std::vector<uint32_t> indexData = {
+        0, 1, 2,
+        1, 3, 2 
+    };
+
+    m_indexCount = indexData.size();
+
+    WGPUBufferDescriptor indexBufferDesc{};
+    indexBufferDesc.nextInChain          = nullptr;
+    indexBufferDesc.size                 = m_indexCount * sizeof(uint32_t);
+    indexBufferDesc.size                 = (indexBufferDesc.size + 3) & ~3; // round up to the next multiple of 4
+    indexBufferDesc.usage                = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Index; // Vertex usage here!
+    indexBufferDesc.mappedAtCreation     = false;
+    
+
+    m_indexBuffer = wgpuDeviceCreateBuffer(gpu.m_device, &indexBufferDesc);
+    wgpuQueueWriteBuffer(gpu.m_queue, m_indexBuffer, 0, indexData.data(), indexBufferDesc.size);
 }
 
 VertexBuffer::~VertexBuffer() 
 {
     wgpuBufferRelease(m_vertexBuffer);
-    m_vertexBuffer = nullptr;
+    wgpuBufferRelease(m_indexBuffer);
+    m_vertexBuffer  = nullptr;
+    m_indexBuffer   = nullptr;
 }
 
 void VertexBuffer::setMesh(const Mesh *mesh) 
