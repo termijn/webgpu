@@ -10,6 +10,7 @@
 #include <string>
 
 #include "gpu.h"
+#include "texture.h"
 
 class RenderTarget
 {
@@ -25,6 +26,7 @@ protected:
     WGPUTextureFormat m_surfaceFormat;
 
     virtual WGPUTextureView getNextTextureView() = 0;
+    virtual WGPUTextureView getDepthTextureView() = 0;
 };
 
 class WindowTarget: public RenderTarget
@@ -41,6 +43,11 @@ private:
     SDL_Window*     window      = nullptr;
     WGPUSurface     surface     = nullptr;
     WGPUTextureView targetView  = nullptr;
-
+    WGPUSurfaceConfiguration surfaceConfig = {};
+    
+protected:
     WGPUTextureView getNextTextureView() override;
+    WGPUTextureView getDepthTextureView() override;
+
+    Texture m_depthTexture;
 };

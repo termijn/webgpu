@@ -101,26 +101,26 @@ mat4 Space::to(const Space &target) const
     return target.fromRoot * toRoot;
 }
 
-vec3 Space::transformPos(const vec3 &position, const Space &targetSpace) const
+vec3 Space::pos(const vec3 &position, const Space &targetSpace) const
 {
     vec4 result = to(targetSpace) * vec4(position, 1.0);
     result /= result.w;
     return result;
 }
 
-vec3 Space::transformDir(const vec3 &direction, const Space &targetSpace) const
+vec3 Space::dir(const vec3 &direction, const Space &targetSpace) const
 {
     return to(targetSpace) * vec4(direction, 0.0);
 }
 
 glm::vec3 Space::dir(const glm::vec3 &direction, const Space &from, const Space &to)
 {
-    return from.transformDir(direction, to);
+    return from.dir(direction, to);
 }
 
 glm::vec3 Space::pos(const glm::vec3 &pos, const Space &from, const Space &to)
 {
-        return from.transformDir(pos, to);
+    return from.dir(pos, to);
 }
 
 CameraObject::CameraObject(const Object &parent)

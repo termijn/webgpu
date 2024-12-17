@@ -9,6 +9,7 @@
 #endif // __EMSCRIPTEN__
 
 #include "viewport.h"
+#include "animator.h"
 
 Scheduler::Scheduler()
 {
@@ -38,15 +39,16 @@ void Scheduler::tick()
         default:
             break;
         }
-    }
+}
+
+    for (Animator* animator: animators)
+        animator->animate();
 
     auto time   = std::chrono::steady_clock::now() - startTime;
     auto milli  = std::chrono::duration_cast<std::chrono::milliseconds>(time).count();
     for (Viewport* viewport: viewports)
-    {
         viewport->render();
-    }
-    
+
     nrFrames++;
 
     if (milli >= 2000 )

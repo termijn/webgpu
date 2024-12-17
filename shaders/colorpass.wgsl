@@ -1,26 +1,50 @@
 struct VertexInput
 {
-	@location(0) position: 	vec2f,
-	@location(1) color: 	vec3f
+    @location(0) position:  vec4f,
+    @location(1) normal:    vec4f,
 }
 
 struct VertexOutput
 {
-	 @builtin(position) position: 	vec4f,
-	 @location(0) 		color: 		vec3f
+     @builtin(position) position:   vec4f,
+     @location(0)       normal:     vec4f
 }
+
+struct Frame
+{
+    view:               mat4x4f,
+    projection:         mat4x4f,
+    viewPositionWorld:  vec4f
+}
+
+struct Model
+{
+    model:          mat4x4f,
+    modelInverse:   mat4x4f
+}
+
+@group(0)
+@binding(0)
+var<uniform> frame: Frame;
+
+@group(1)
+@binding(0)
+var<uniform> model: Model;
 
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput
 {
-	var out: VertexOutput;
-	out.position = vec4f(in.position, 0.0, 1.0);
-	out.color  	 = in.color;
-	return out;
+    var out: VertexOutput;
+    out.position = frame.projection * frame.view * model.model * in.position;
+    out.normal   = model.modelInverse * in.normal;
+    return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f 
 {
-	return vec4f(in.color, 1.0);
+    let lightDir    = vec3f(0.2, 0.2, -0.1);
+    let shading     = max(0.0, dot(lightDir.xyz, in.normal.xyz));
+    let color       = vec3f(1.0, 0.6, 0.0);
+    return vec4f(color * shading + vec3f(0.3), 1.0);
 }

@@ -18,11 +18,13 @@ set(CMAKE_CXX_STANDARD 20)
 file(GLOB_RECURSE WEBGPU_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${CMAKE_PROJECT_NAME} ${WEBGPU_SRC_FILES})
 
+target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_LEFT_HANDED)
+
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/ext)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2::SDL2 webgpu sdl2webgpu)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE SDL2::SDL2 webgpu sdl2webgpu glm)
 
 target_copy_webgpu_binaries(${CMAKE_PROJECT_NAME})
 

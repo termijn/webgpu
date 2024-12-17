@@ -20,10 +20,10 @@ class Vertex
 public:
     glm::vec4 position;
     glm::vec4 normal;
-    glm::vec2 uv;
     glm::vec4 tangent    = glm::vec4(0.0);
     glm::vec4 bitangent  = glm::vec4(0.0);
-
+    glm::vec2 uv;
+    glm::vec2 padding;
 };
 
 class Mesh

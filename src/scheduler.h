@@ -4,10 +4,12 @@
 #include <iostream>
 
 class Viewport;
+class Animator;
 
 class Scheduler
 {
 friend class Viewport;
+friend class Animator;
 
 public:
     Scheduler();
@@ -19,6 +21,7 @@ public:
 
 private:
     std::vector<Viewport*> viewports;
+    std::vector<Animator*> animators;
 
     std::chrono::time_point<std::chrono::steady_clock> startTime;
     int nrFrames = 0;

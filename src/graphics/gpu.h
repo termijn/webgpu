@@ -8,6 +8,9 @@ class Gpu
 friend class WindowTarget;
 friend class RenderPass;
 friend class VertexBuffer;
+friend class Texture;
+template <typename T>
+friend class Uniforms;
 
 public:
     Gpu();

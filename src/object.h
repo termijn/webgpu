@@ -10,9 +10,9 @@ public:
     glm::mat4 toRoot    = glm::mat4(1.0);
     glm::mat4 fromRoot  = glm::mat4(1.0);
 
-    glm::mat4 to            (const Space& target) const;
-    glm::vec3 transformPos  (const glm::vec3& position,     const Space& targetSpace) const;
-    glm::vec3 transformDir  (const glm::vec3& direction,    const Space& targetSpace) const;
+    glm::mat4 to  (const Space& target) const;
+    glm::vec3 pos (const glm::vec3& position,     const Space& targetSpace) const;
+    glm::vec3 dir (const glm::vec3& direction,    const Space& targetSpace) const;
 
     static glm::vec3 dir(const glm::vec3& direction,   const Space& from, const Space& to);
     static glm::vec3 pos(const glm::vec3& pos,         const Space& from, const Space& to);

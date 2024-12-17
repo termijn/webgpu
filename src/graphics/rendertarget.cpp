@@ -3,6 +3,7 @@
 using namespace glm;
 
 WindowTarget::WindowTarget(Gpu& gpu)
+    : m_depthTexture(gpu, Texture::Format::Depth)
 {
     int windowFlags = SDL_WINDOW_RESIZABLE;
     window  = SDL_CreateWindow("WebGPU renderer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, windowFlags);
@@ -13,19 +14,18 @@ WindowTarget::WindowTarget(Gpu& gpu)
     wgpuSurfaceGetCapabilities(surface, gpu.m_adapter, &capabilities);
     m_surfaceFormat = capabilities.formats[0];
 
-    WGPUSurfaceConfiguration config {};
-    config.nextInChain      = nullptr;
-    config.width            = 640;
-    config.height           = 480;
-    config.format           = m_surfaceFormat;
-    config.viewFormatCount  = 0;
-    config.viewFormats      = nullptr;
-    config.usage            = WGPUTextureUsage_RenderAttachment;
-    config.device           = gpu.m_device;
-    config.presentMode      = WGPUPresentMode_Fifo;
-    config.alphaMode        = WGPUCompositeAlphaMode_Auto;
+    surfaceConfig.nextInChain      = nullptr;
+    surfaceConfig.width            = 640;
+    surfaceConfig.height           = 480;
+    surfaceConfig.format           = m_surfaceFormat;
+    surfaceConfig.viewFormatCount  = 0;
+    surfaceConfig.viewFormats      = nullptr;
+    surfaceConfig.usage            = WGPUTextureUsage_RenderAttachment;
+    surfaceConfig.device           = gpu.m_device;
+    surfaceConfig.presentMode      = WGPUPresentMode_Immediate;
+    surfaceConfig.alphaMode        = WGPUCompositeAlphaMode_Auto;
 
-    wgpuSurfaceConfigure(surface, &config);
+    wgpuSurfaceConfigure(surface, &surfaceConfig);
 }
 
 WindowTarget::~WindowTarget()
@@ -37,6 +37,12 @@ WindowTarget::~WindowTarget()
 
 void WindowTarget::beginRender()
 {
+    glm::vec2 size = getSize();
+    surfaceConfig.width = size.x;
+    surfaceConfig.height = size.y;
+    wgpuSurfaceConfigure(surface, &surfaceConfig);
+
+    m_depthTexture.setSize(size);
 }
 
 void WindowTarget::endRender()
@@ -77,4 +83,9 @@ WGPUTextureView WindowTarget::getNextTextureView()
     wgpuTextureRelease(surfaceTexture.texture);
     #endif // WEBGPU_BACKEND_WGPU
     return targetView;
+}
+
+WGPUTextureView WindowTarget::getDepthTextureView()
+{
+    return m_depthTexture.getTextureView();
 }

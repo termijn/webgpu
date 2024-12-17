@@ -22,10 +22,7 @@ private:
     const Mesh*     m_mesh;
 
     WGPUBuffer  m_vertexBuffer = nullptr;
-    uint32_t    m_vertexCount;
-
     WGPUBuffer  m_indexBuffer = nullptr;
-    uint32_t    m_indexCount;
 
     WGPUVertexBufferLayout              m_vertexBufferLayout = {};
     std::array<WGPUVertexAttribute, 2>  m_vertexAttribs = {};
