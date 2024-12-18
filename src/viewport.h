@@ -4,9 +4,13 @@
 #include "graphics/renderpass.h"
 #include "scheduler.h"
 #include "renderable.h"
+#include "input.h"
 
 class Viewport
 {
+friend class Scheduler;
+friend class Input;
+
 public:
     Viewport(Scheduler& scheduler, Gpu& gpu, RenderTarget& renderTarget);
     virtual ~Viewport();
@@ -17,6 +21,12 @@ public:
 
     void render();
 
+protected:
+    void mouseDown  (MouseButton button, const glm::vec3& position);
+    void mouseMove  (const glm::vec3& position);
+    void mouseUp    (MouseButton button, const glm::vec3& position);
+    void mouseWheel (int direction);
+
 private:
     Scheduler&      scheduler;
     RenderTarget&   renderTarget;
@@ -25,6 +35,9 @@ private:
     const Object*           light   = nullptr;
     
     std::vector<const Renderable*>  renderables;
+    std::vector<Input*>             m_inputs;
+    Input*                          m_activeInput = nullptr;
+    MouseButton                     m_pressedButtons      = MouseButton::None;
 
     RenderPass      renderPass;
 

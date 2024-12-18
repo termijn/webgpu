@@ -20,6 +20,7 @@
 #include "object.h"
 #include "animator.h"
 #include "io/loader.h"
+#include "inputs/roll.h"
 
 using namespace glm;
 
@@ -43,6 +44,7 @@ int main (int, char**)
     Viewport        viewport(scheduler, gpu, windowTarget);
 
     Object          root;
+    Object          sceneParent(root);
     CameraObject    camera  = CameraObject(root);
     Object          light   = Object(camera);
 
@@ -53,27 +55,28 @@ int main (int, char**)
              rotation = rotate(mat4(1.0), radians(float(t * 140.0f)), vec3(1.0f, 0.0f, 0.0f)) * rotation;
         camera.setTransform(rotation);
     });
-    animator.start();
+    //animator.start();
 
     camera.setPerspective(radians(45.0f), 0.1f, 1000.0f);
-    camera.lookAt(vec3(0, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
-    light.lookAt(vec3(0.5, 0.6, 1), vec3(0, 0, 0), vec3(0, 1, 0));
+    light.lookAt(vec3(0.5, 0.6, 0.0), vec3(0, 0, 1.0), vec3(0, 1, 0));
 
     viewport.attachCamera(camera);
     viewport.attachLight(light);
-    
-    std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", root);
+
+    std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", sceneParent);
+
     for (auto& renderable : scene->all())
     {
         viewport.attachRenderable(renderable->getRenderable());
     }
 
+    Box box = scene->getBox();
+    vec3 sceneCenter = Space::pos(box.center(), Space(), camera.getParentSpace());
+    float diameter   = Space::dir(box.max - box.min, Space(), camera.getParentSpace()).length();
 
-    // Object knotObj(root);
-    // knotObj.setTransform(translate(mat4(1.0), vec3(1.0,0.0,0.0)));
-    // Renderable renderable(knotObj);
-    // renderable.mesh.knot(0.5, 0.2, 180, 180);
-    // viewport.attachRenderable(renderable);
+    camera.lookAt(sceneCenter + vec3(0, 0, diameter * 5), sceneCenter, vec3(0, 1, 0));
+    
+    RollInput   cameraInput     = RollInput(viewport, camera);
 
     scheduler.run();
 

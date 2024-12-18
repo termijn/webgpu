@@ -30,17 +30,17 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
     m_uniformsFrame.setSize(1);
     m_uniformsFrame.writeChanges(0, m_frameData);
 
-    bool sizeChanged = m_uniformsModel.setSize(renderables.size());
+    bool nrRenderablesChanged = m_uniformsModel.setSize(renderables.size());
 
-    if (sizeChanged)
+    if (nrRenderablesChanged)
         createBindings();
 
     int index = 0;
     for (const Renderable* renderable : renderables)
     {
         ModelData data;
-        data.model          = mat4(1.0);
-        data.modelInverse   = mat4(1.0);
+        data.model          = renderable->object->getSpace().toRoot;
+        data.modelInverse   = renderable->object->getSpace().fromRoot;
         m_uniformsModel.writeChanges(index, data);
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
@@ -307,8 +307,8 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 
 void RenderPass::createBindings()
 {
-    // for (WGPUBindGroup& group : m_bindGroups)
-    //     wgpuBindGroupRelease(group);
+    for (WGPUBindGroup& group : m_bindGroups) if (group != nullptr)
+        wgpuBindGroupRelease(group);
 
     WGPUBindGroupEntry entry0{};
     entry0.nextInChain = nullptr;

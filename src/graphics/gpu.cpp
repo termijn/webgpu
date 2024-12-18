@@ -355,7 +355,6 @@ WGPUInstance Gpu::createInstance()
 
 WGPURequiredLimits Gpu::getRequiredLimits(WGPUAdapter adapter) const
 {
-    // Get adapter supported limits, in case we need them
     WGPUSupportedLimits supportedLimits;
     supportedLimits.nextInChain = nullptr;
     wgpuAdapterGetLimits(adapter, &supportedLimits);
@@ -363,21 +362,18 @@ WGPURequiredLimits Gpu::getRequiredLimits(WGPUAdapter adapter) const
     WGPURequiredLimits requiredLimits{};
     setDefaults(requiredLimits.limits);
 
-    // We use at most 1 vertex attribute for now
-    requiredLimits.limits.maxVertexAttributes = 5;
-    // We should also tell that we use 1 vertex buffers
-    requiredLimits.limits.maxVertexBuffers = 1;
-    // Maximum size of a buffer is 6 vertices of 5 float each
-    requiredLimits.limits.maxBufferSize = supportedLimits.limits.maxBufferSize;
-    requiredLimits.limits.maxVertexBufferArrayStride = sizeof(Vertex);
+    requiredLimits.limits.maxVertexAttributes           = 5;
+    requiredLimits.limits.maxVertexBuffers              = 1;
+    requiredLimits.limits.maxBufferSize                 = supportedLimits.limits.maxBufferSize;
+    requiredLimits.limits.maxVertexBufferArrayStride    = sizeof(Vertex);
     requiredLimits.limits.maxInterStageShaderComponents = 3;
     
     requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
     requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
 
-    requiredLimits.limits.maxBindGroups                     = 1;
+    requiredLimits.limits.maxBindGroups                     = 2;
     requiredLimits.limits.maxUniformBuffersPerShaderStage   = 1;
-    requiredLimits.limits.maxUniformBufferBindingSize       = sizeof(float) * 16 * 6;
+    requiredLimits.limits.maxUniformBufferBindingSize       = sizeof(float) * 16 * 16;
     requiredLimits.limits.maxDynamicUniformBuffersPerPipelineLayout = 2;
 
     requiredLimits.limits.maxTextureDimension1D = 2048;

@@ -63,7 +63,7 @@ private:
     WGPUDepthStencilState   m_depthStencilState {};
     WGPURenderPipeline      m_pipeline {};
 
-    std::array<WGPUBindGroup, 2> m_bindGroups {};
+    std::array<WGPUBindGroup, 2> m_bindGroups { nullptr, nullptr };
 
     void createPipeline();
     void createLayout(WGPURenderPipelineDescriptor& pipeline);

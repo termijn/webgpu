@@ -11,6 +11,8 @@
 #include "viewport.h"
 #include "animator.h"
 
+using namespace glm;
+
 Scheduler::Scheduler()
 {
 }
@@ -27,6 +29,10 @@ void Scheduler::tick()
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
+        int mouseX = event.motion.x;
+        int mouseY = event.motion.y;
+        vec3 pos(double(mouseX), double(mouseY), 0.0);
+
         switch (event.type)
         {
         case SDL_QUIT:
@@ -35,11 +41,39 @@ void Scheduler::tick()
             emscripten_cancel_main_loop();
             #endif
             break;
+        case SDL_MOUSEWHEEL:
+            for(auto viewport: viewports)
+                viewport->mouseWheel(event.wheel.y);
+            break;
+        case SDL_MOUSEMOTION:
+            {
+                for(auto viewport: viewports)
+                    viewport->mouseMove(pos);
+            }
+            break;
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                MouseButton button = MouseButton::Left;
+                if (event.button.button == SDL_BUTTON_RIGHT)
+                    button = MouseButton::Right;
+                else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    button = MouseButton::Middle;
 
-        default:
+                for (auto viewport: viewports)
+                    viewport->mouseDown(button, pos);
+            }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            MouseButton button = MouseButton::Left;
+            if (event.button.button == SDL_BUTTON_RIGHT)
+                button = MouseButton::Right;
+            else if (event.button.button == SDL_BUTTON_MIDDLE)
+                button = MouseButton::Middle;
+            for (auto viewport: viewports)
+                viewport->mouseUp(button, pos);
             break;
         }
-}
+    }
 
     for (Animator* animator: animators)
         animator->animate();
@@ -47,7 +81,12 @@ void Scheduler::tick()
     auto time   = std::chrono::steady_clock::now() - startTime;
     auto milli  = std::chrono::duration_cast<std::chrono::milliseconds>(time).count();
     for (Viewport* viewport: viewports)
+    {
+        for (Input* input: viewport->m_inputs)
+            input->animateTick(milli / 1000.0);
+
         viewport->render();
+    }
 
     nrFrames++;
 
