@@ -111,8 +111,8 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
 
 void RenderPass::drawCommands(WGPURenderPassEncoder encoder, const std::vector<const Renderable*>& renderables)
 {
-    m_uniformsFrame.upload();
-    m_uniformsModel.upload();
+    m_uniformsFrame.writeChanges();
+    m_uniformsModel.writeChanges();
 
     for (const Renderable* renderable : renderables)
     {

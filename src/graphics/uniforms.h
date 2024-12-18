@@ -26,7 +26,7 @@ public:
         buffer = nullptr;
     }
 
-    void upload()
+    void writeChanges()
     {
         if (m_lastWrittenData != m_data || !m_dataInitialized)
             wgpuQueueWriteBuffer(m_gpu.m_queue, buffer, 0, &m_data, sizeof(T));
