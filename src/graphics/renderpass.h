@@ -10,9 +10,10 @@
 
 struct FrameData
 {
-    glm::mat4 view              = glm::mat4(1.0);
-    glm::mat4 projection        = glm::mat4(1.0);
-    glm::vec4 viewPositionWorld = glm::vec4(0.0);
+    glm::mat4 view                  = glm::mat4(1.0);
+    glm::mat4 projection            = glm::mat4(1.0);
+    glm::vec4 viewPositionWorld     = glm::vec4(0.0);
+    glm::vec4 lightPositionWorld    = glm::vec4(0.0);
 };
 
 struct ModelData
@@ -32,7 +33,7 @@ public:
         glm::mat4 view;
         glm::mat4 projection;
         glm::mat4 worldToLight;
-        glm::vec3 lightPosWorld;
+        glm::vec4 lightPosWorld;
     };
 
     void renderPre(const RenderParams& params);

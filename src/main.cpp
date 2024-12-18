@@ -42,8 +42,8 @@ int main (int, char**)
     Viewport        viewport(scheduler, gpu, windowTarget);
 
     Object          root;
-    Object          light = Object(root);
-    CameraObject    camera = CameraObject(root);
+    CameraObject    camera  = CameraObject(root);
+    Object          light   = Object(camera);
 
     Animator animator(scheduler, [&](double t)
     {
@@ -56,7 +56,7 @@ int main (int, char**)
 
     camera.setPerspective(radians(45.0f), 0.1f, 1000.0f);
     camera.lookAt(vec3(0, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
-    light.lookAt(vec3(1, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
+    light.lookAt(vec3(0.5, 0.6, 1), vec3(0, 0, 0), vec3(0, 1, 0));
 
     viewport.attachCamera(camera);
     viewport.attachLight(light);

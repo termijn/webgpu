@@ -22,7 +22,7 @@ WindowTarget::WindowTarget(Gpu& gpu)
     surfaceConfig.viewFormats      = nullptr;
     surfaceConfig.usage            = WGPUTextureUsage_RenderAttachment;
     surfaceConfig.device           = gpu.m_device;
-    surfaceConfig.presentMode      = WGPUPresentMode_Immediate;
+    surfaceConfig.presentMode      = WGPUPresentMode_Fifo;
     surfaceConfig.alphaMode        = WGPUCompositeAlphaMode_Auto;
 
     wgpuSurfaceConfigure(surface, &surfaceConfig);

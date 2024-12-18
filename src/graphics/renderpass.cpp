@@ -1,6 +1,8 @@
 #include "renderpass.h"
 #include <iostream>
 
+using namespace glm;
+
 RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget)
     : m_gpu           (gpu)
     , m_renderTarget  (renderTarget)
@@ -29,8 +31,10 @@ RenderPass::~RenderPass()
 
 void RenderPass::renderPre(const RenderParams& params)
 {
-    m_frameData.view       = params.view;
-    m_frameData.projection = params.projection;
+    m_frameData.view                = params.view;
+    m_frameData.projection          = params.projection;
+    m_frameData.viewPositionWorld   = inverse(params.view)[3];
+    m_frameData.lightPositionWorld  = params.lightPosWorld;
 }
 
 void RenderPass::render(const std::vector<const Renderable*>& renderables)
@@ -254,7 +258,7 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     WGPUBindGroupLayoutEntry entry0{};
     setDefault(entry0);
     entry0.binding = 0;
-    entry0.visibility = WGPUShaderStage_Vertex;
+    entry0.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
     entry0.buffer.type = WGPUBufferBindingType_Uniform;
     entry0.buffer.minBindingSize = sizeof(FrameData);
 

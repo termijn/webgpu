@@ -11,6 +11,7 @@ add_subdirectory(ext/sdl2)
 add_subdirectory(ext/webgpu)
 add_subdirectory(ext/sdl2webgpu)
 add_subdirectory(ext/glm)
+add_subdirectory(ext/tinygltf-2.9.3)
 
 add_definitions(-std=c++20)
 set(CMAKE_CXX_STANDARD 20)

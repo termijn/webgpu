@@ -61,6 +61,18 @@ void VertexBuffer::setMesh(const Mesh *mesh)
     m_vertexAttribs[1].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
     m_vertexAttribs[1].offset = offsetof(Vertex, normal);
 
+    m_vertexAttribs[2].shaderLocation = 2;
+    m_vertexAttribs[2].format = WGPUVertexFormat::WGPUVertexFormat_Float32x2;
+    m_vertexAttribs[2].offset = offsetof(Vertex, uv);
+
+    m_vertexAttribs[3].shaderLocation = 3;
+    m_vertexAttribs[3].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    m_vertexAttribs[3].offset = offsetof(Vertex, tangent);
+
+    m_vertexAttribs[4].shaderLocation = 4;
+    m_vertexAttribs[4].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    m_vertexAttribs[4].offset = offsetof(Vertex, bitangent);
+
     m_vertexBufferLayout.attributeCount = m_vertexAttribs.size();
     m_vertexBufferLayout.attributes     = m_vertexAttribs.data();
     m_vertexBufferLayout.arrayStride    = sizeof(Vertex);

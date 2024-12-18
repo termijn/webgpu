@@ -27,7 +27,7 @@ void Viewport::render()
     vec2 size               = renderTarget.getSize();
     Space projectionSpace   = camera->getProjectionSpace(size.x / size.y);
 
-    vec3 lightpos = light->getSpace().pos(vec3(0.0), Space());
+    vec4 lightpos = vec4(light->getSpace().pos(vec3(0.0), Space()), 1.0);
 
     RenderPass::RenderParams params {
         .lightPosWorld  = lightpos,

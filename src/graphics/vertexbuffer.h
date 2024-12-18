@@ -25,5 +25,5 @@ private:
     WGPUBuffer  m_indexBuffer = nullptr;
 
     WGPUVertexBufferLayout              m_vertexBufferLayout = {};
-    std::array<WGPUVertexAttribute, 2>  m_vertexAttribs = {};
+    std::array<WGPUVertexAttribute, 5>  m_vertexAttribs = {};
 };
