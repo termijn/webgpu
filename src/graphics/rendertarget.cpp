@@ -1,9 +1,11 @@
 #include "rendertarget.h"
+#include <iostream>
 
 using namespace glm;
 
 WindowTarget::WindowTarget(Gpu& gpu)
-    : m_depthTexture(gpu, Texture::Format::Depth)
+    : m_depthTexture(gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::Depth })
+    , m_msaaTexture (gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::RGBA })
 {
     int windowFlags = SDL_WINDOW_RESIZABLE;
     window  = SDL_CreateWindow("WebGPU renderer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, windowFlags);
@@ -42,6 +44,7 @@ void WindowTarget::beginRender()
     surfaceConfig.height = size.y;
     wgpuSurfaceConfigure(surface, &surfaceConfig);
 
+    m_msaaTexture.setSize(size);
     m_depthTexture.setSize(size);
 }
 
@@ -88,4 +91,9 @@ WGPUTextureView WindowTarget::getNextTextureView()
 WGPUTextureView WindowTarget::getDepthTextureView()
 {
     return m_depthTexture.getTextureView();
+}
+
+WGPUTextureView WindowTarget::getMsaaTextureView()
+{
+    return m_msaaTexture.getTextureView();
 }

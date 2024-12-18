@@ -27,6 +27,7 @@ protected:
 
     virtual WGPUTextureView getNextTextureView() = 0;
     virtual WGPUTextureView getDepthTextureView() = 0;
+    virtual WGPUTextureView getMsaaTextureView() = 0;
 };
 
 class WindowTarget: public RenderTarget
@@ -48,6 +49,8 @@ private:
 protected:
     WGPUTextureView getNextTextureView() override;
     WGPUTextureView getDepthTextureView() override;
+    WGPUTextureView getMsaaTextureView() override;
 
     Texture m_depthTexture;
+    Texture m_msaaTexture;
 };

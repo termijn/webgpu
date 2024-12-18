@@ -39,13 +39,12 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
 
     WGPUTextureView targetView = m_renderTarget.getNextTextureView();
 
-    // The attachment part of the render pass descriptor describes the target texture of the pass
     WGPURenderPassColorAttachment renderPassColorAttachment{};
-    renderPassColorAttachment.view          = targetView;
-    renderPassColorAttachment.resolveTarget = nullptr;
+    renderPassColorAttachment.view          = m_renderTarget.getMsaaTextureView();
+    renderPassColorAttachment.resolveTarget = targetView;
     renderPassColorAttachment.loadOp        = WGPULoadOp_Clear;
     renderPassColorAttachment.storeOp       = WGPUStoreOp_Store;
-    renderPassColorAttachment.clearValue    = WGPUColor{ 0.05, 0.05, 0.05, 1.0 };
+    renderPassColorAttachment.clearValue    = WGPUColor{ 1.0, 1.0, 1.0, 0.0 };
 
     #ifndef WEBGPU_BACKEND_WGPU
     renderPassColorAttachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
@@ -244,7 +243,7 @@ void RenderPass::createPipeline()
     createBindings();
 
     // Samples per pixel
-    pipelineDesc.multisample.count  = 1;
+    pipelineDesc.multisample.count  = 4;
     pipelineDesc.multisample.mask   = ~0u;
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
 

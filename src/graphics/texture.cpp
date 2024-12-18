@@ -1,20 +1,34 @@
 #include "texture.h"
 #include "graphics/gpu.h"
 
-Texture::Texture(Gpu& gpu, Format format)
+Texture::Texture(Gpu& gpu, Params params)
     : m_gpu     (gpu)
-    , m_format  (format)
+    , m_params  (params)
 {
     WGPUTextureFormat wgpuFormat;
     WGPUTextureUsageFlags wgpuUsage = WGPUTextureUsage_CopyDst | WGPUTextureUsage_TextureBinding;
-    switch (format)
+
+    switch(params.usage)
+    {
+        case Usage::RenderAttachment:
+            wgpuUsage = WGPUTextureUsage_RenderAttachment;
+            break;
+        case Usage::CopySrcTextureBinding:
+            wgpuUsage = WGPUTextureUsage_CopyDst | WGPUTextureUsage_TextureBinding;
+            break;
+        case Usage::TextureBinding:
+            wgpuUsage = WGPUTextureUsage_TextureBinding;
+            break;
+
+    }
+
+    switch (params.format)
     {
         case Format::Depth:
             wgpuFormat = WGPUTextureFormat_Depth24Plus;
-            wgpuUsage = WGPUTextureUsage_RenderAttachment;
             break;
         case Format::RGBA:
-            wgpuFormat = WGPUTextureFormat_RGBA32Uint;
+            wgpuFormat = WGPUTextureFormat_BGRA8Unorm;
             break;
         case Format::RGB:
             wgpuFormat = WGPUTextureFormat_ETC2RGB8Unorm;
@@ -24,7 +38,7 @@ Texture::Texture(Gpu& gpu, Format format)
     m_textureDesc.dimension = WGPUTextureDimension_2D;
     m_textureDesc.format = wgpuFormat;
     m_textureDesc.mipLevelCount = 1;
-    m_textureDesc.sampleCount = 1;
+    m_textureDesc.sampleCount = params.sampleCount;
     m_textureDesc.size = {1, 1, 1};
     m_textureDesc.usage = wgpuUsage;
     m_textureDesc.viewFormatCount = 1;
@@ -61,7 +75,7 @@ void Texture::setSize(glm::vec2 size)
 
         WGPUTextureViewDescriptor textureViewDesc;
         textureViewDesc.nextInChain = nullptr;
-        textureViewDesc.aspect = WGPUTextureAspect_DepthOnly;
+        textureViewDesc.aspect = (m_params.format == Format::Depth) ? WGPUTextureAspect_DepthOnly : WGPUTextureAspect_All;
         textureViewDesc.baseArrayLayer = 0;
         textureViewDesc.arrayLayerCount = 1;
         textureViewDesc.baseMipLevel = 0;
