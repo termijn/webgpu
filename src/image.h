@@ -3,7 +3,6 @@
 #include <vector>
 #include <memory>
 
-// TODO: make movable and shallow copyable, support multiple types, preventing duplicate uploads
 class Image
 {
 public:

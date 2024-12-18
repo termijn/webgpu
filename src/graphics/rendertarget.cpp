@@ -4,8 +4,8 @@
 using namespace glm;
 
 WindowTarget::WindowTarget(Gpu& gpu)
-    : m_depthTexture(gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::Depth })
-    , m_msaaTexture (gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::RGBA })
+    : m_depthTexture(gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 16, .format = Texture::Format::Depth })
+    , m_msaaTexture (gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 16, .format = Texture::Format::RGBA })
 {
     int windowFlags = SDL_WINDOW_RESIZABLE;
     window  = SDL_CreateWindow("WebGPU renderer", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, windowFlags);

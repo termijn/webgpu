@@ -243,7 +243,7 @@ void RenderPass::createPipeline()
     createBindings();
 
     // Samples per pixel
-    pipelineDesc.multisample.count  = 4;
+    pipelineDesc.multisample.count  = 16;
     pipelineDesc.multisample.mask   = ~0u;
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
 
