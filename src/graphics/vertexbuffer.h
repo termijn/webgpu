@@ -2,9 +2,9 @@
 
 #include <cstdint>
 #include <webgpu/webgpu.h>
-
-#include "gpu.h"
 #include "mesh.h"
+
+class Gpu;
 
 class VertexBuffer
 {
@@ -13,6 +13,14 @@ friend class RenderPass;
 public:
     VertexBuffer(Gpu& gpu);
     ~VertexBuffer();
+
+    class Layout
+    {
+    public:
+        Layout();
+        std::array<WGPUVertexAttribute, 5>  vertexAttribs = {};
+        WGPUVertexBufferLayout              layout = {};
+    };
 
     void setMesh(const Mesh* mesh);
     const Mesh& getMesh() const;
@@ -23,7 +31,4 @@ private:
 
     WGPUBuffer  m_vertexBuffer = nullptr;
     WGPUBuffer  m_indexBuffer = nullptr;
-
-    WGPUVertexBufferLayout              m_vertexBufferLayout = {};
-    std::array<WGPUVertexAttribute, 5>  m_vertexAttribs = {};
 };

@@ -8,11 +8,7 @@ RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget)
     , m_renderTarget  (renderTarget)
     , m_uniformsFrame (gpu, m_frameData)
     , m_uniformsModel (gpu, m_modelData)
-    , m_vertexBuffer  (gpu)
 {
-    m_mesh.knot(0.5, 0.2, 180, 180);
-    m_vertexBuffer.setMesh(&m_mesh);
-
     createPipeline();
 }
 
@@ -88,13 +84,10 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
     wgpuRenderPassEncoderSetViewport(renderPass, 0, 0, size.x, size.y, 0.0, 1.0);
     wgpuRenderPassEncoderSetPipeline(renderPass, m_pipeline);
 
-    wgpuRenderPassEncoderSetIndexBuffer(renderPass, m_vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(m_vertexBuffer.m_indexBuffer));
-    wgpuRenderPassEncoderSetVertexBuffer(renderPass,  0, m_vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(m_vertexBuffer.m_vertexBuffer));
-
     wgpuRenderPassEncoderSetBindGroup(renderPass, 0, m_bindGroups[0], 0, nullptr);
     wgpuRenderPassEncoderSetBindGroup(renderPass, 1, m_bindGroups[1], 0, nullptr);
 
-    drawCommands(renderPass);
+    drawCommands(renderPass, renderables);
 
     wgpuRenderPassEncoderEnd(renderPass);
     wgpuRenderPassEncoderRelease(renderPass);
@@ -116,13 +109,19 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
 #endif
 }
 
-void RenderPass::drawCommands(WGPURenderPassEncoder encoder)
+void RenderPass::drawCommands(WGPURenderPassEncoder encoder, const std::vector<const Renderable*>& renderables)
 {
-    // TODO: detect changes
     m_uniformsFrame.upload();
     m_uniformsModel.upload();
 
-    wgpuRenderPassEncoderDrawIndexed(encoder, m_vertexBuffer.m_mesh->indices().size() * 3, 1, 0, 0, 0);
+    for (const Renderable* renderable : renderables)
+    {
+        VertexBuffer& vertexBuffer = m_gpu.getResourcePool().get(renderable);
+
+        wgpuRenderPassEncoderSetIndexBuffer (encoder, vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(vertexBuffer.m_indexBuffer));
+        wgpuRenderPassEncoderSetVertexBuffer(encoder,  0, vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(vertexBuffer.m_vertexBuffer));
+        wgpuRenderPassEncoderDrawIndexed    (encoder, vertexBuffer.m_mesh->indices().size() * 3, 1, 0, 0, 0);
+    }
 }
 
 void setDefault(WGPUBindGroupLayoutEntry &bindingLayout) 
@@ -199,8 +198,9 @@ void RenderPass::createPipeline()
 
     pipelineDesc.depthStencil = &m_depthStencilState;
 
+    WGPUVertexBufferLayout layout = VertexBuffer::Layout().layout;
     pipelineDesc.vertex.bufferCount = 1;
-    pipelineDesc.vertex.buffers = &m_vertexBuffer.m_vertexBufferLayout;
+    pipelineDesc.vertex.buffers = &layout;
     
     pipelineDesc.vertex.module = shaderModule;
     pipelineDesc.vertex.entryPoint = "vs_main";
@@ -321,3 +321,30 @@ void RenderPass::createBindings()
     m_bindGroups[0] = wgpuDeviceCreateBindGroup(m_gpu.m_device, &group0);
     m_bindGroups[1] = wgpuDeviceCreateBindGroup(m_gpu.m_device, &group1);
 }
+
+bool FrameData::operator==(const FrameData& other) const
+{
+    return 
+        view == other.view &&
+        projection == other.projection &&
+        viewPositionWorld == other.viewPositionWorld &&
+        lightPositionWorld == other.lightPositionWorld;
+}
+
+bool FrameData::operator!=(const FrameData& other) const
+{
+    return !(*this == other);
+}
+
+bool ModelData::operator==(const ModelData& other) const
+{
+    return 
+        model == other.model &&
+        modelInverse == other.modelInverse;
+}
+
+bool ModelData::operator!=(const ModelData& other) const
+{
+    return !(*this == other);
+}
+

@@ -3,6 +3,8 @@
 #include <webgpu/webgpu.h>
 #include <string>
 
+#include "resourcepool.h"
+
 class Gpu
 {
 friend class WindowTarget;
@@ -16,6 +18,8 @@ public:
     Gpu();
     ~Gpu();
 
+    ResourcePool& getResourcePool();
+
     std::string compileShader(const std::string& file);
 
 private:
@@ -23,6 +27,8 @@ private:
     WGPUDevice      m_device;
     WGPUAdapter     m_adapter;
     WGPUQueue       m_queue;
+
+    ResourcePool m_resourcePool;
 
     WGPUCommandEncoder createCommandEncoder();
 

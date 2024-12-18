@@ -19,6 +19,7 @@
 #include "viewport.h"
 #include "object.h"
 #include "animator.h"
+#include "io/loader.h"
 
 using namespace glm;
 
@@ -60,6 +61,19 @@ int main (int, char**)
 
     viewport.attachCamera(camera);
     viewport.attachLight(light);
+    
+    std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", root);
+    for (auto& renderable : scene->all())
+    {
+        viewport.attachRenderable(renderable->getRenderable());
+    }
+
+
+    // Object knotObj(root);
+    // knotObj.setTransform(translate(mat4(1.0), vec3(1.0,0.0,0.0)));
+    // Renderable renderable(knotObj);
+    // renderable.mesh.knot(0.5, 0.2, 180, 180);
+    // viewport.attachRenderable(renderable);
 
     scheduler.run();
 

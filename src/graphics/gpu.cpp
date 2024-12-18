@@ -8,6 +8,7 @@
 #include "mesh.h"
 
 Gpu::Gpu()
+    : m_resourcePool(*this)
 {
     m_instance = createInstance();
     std::cout << "WGPU instance: " << m_instance << std::endl;
@@ -31,6 +32,11 @@ Gpu::~Gpu()
     wgpuQueueRelease(m_queue);
     wgpuAdapterRelease(m_adapter);
     wgpuDeviceRelease(m_device);
+}
+
+ResourcePool& Gpu::getResourcePool()
+{
+    return m_resourcePool;
 }
 
 std::string Gpu::compileShader(const std::string& filepath)

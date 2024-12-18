@@ -28,11 +28,17 @@ public:
 
     void upload()
     {
-        wgpuQueueWriteBuffer(m_gpu.m_queue, buffer, 0, &m_data, sizeof(T));
+        if (m_lastWrittenData != m_data || !m_dataInitialized)
+            wgpuQueueWriteBuffer(m_gpu.m_queue, buffer, 0, &m_data, sizeof(T));
+
+        m_dataInitialized = true;
+        m_lastWrittenData = m_data;
     }
 private:
     Gpu&    m_gpu;
     T&      m_data;
+    T       m_lastWrittenData;
+    bool    m_dataInitialized = false;
 
     WGPUBuffer buffer = nullptr;
 };

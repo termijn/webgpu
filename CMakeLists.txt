@@ -42,4 +42,14 @@ else()
           ${SHADER_SOURCE}
           $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/shaders/colorpass.wgsl
       )
+
+    set(MODEL_SOURCE "${CMAKE_SOURCE_DIR}/models/DamagedHelmet.glb")
+    add_custom_command(
+        TARGET ${CMAKE_PROJECT_NAME}
+        POST_BUILD
+        COMMAND
+          ${CMAKE_COMMAND} -E copy_if_different
+          ${SHADER_SOURCE}
+          $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/models/DamagedHelmet.glb
+      )
 endif()

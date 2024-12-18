@@ -1,6 +1,8 @@
 #include "vertexbuffer.h"
 #include <vector>
 
+#include "graphics/gpu.h"
+
 VertexBuffer::VertexBuffer(Gpu &gpu) 
     : m_gpu(gpu)
 {
@@ -50,33 +52,36 @@ void VertexBuffer::setMesh(const Mesh *mesh)
 
     m_indexBuffer = wgpuDeviceCreateBuffer(m_gpu.m_device, &indexBufferDesc);
     wgpuQueueWriteBuffer(m_gpu.m_queue, m_indexBuffer, 0, mesh->indices().data(), indexBufferDesc.size);
-
-    // Position
-    m_vertexAttribs[0].shaderLocation = 0;
-    m_vertexAttribs[0].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
-    m_vertexAttribs[0].offset = offsetof(Vertex, position);
-
-    // Normal
-    m_vertexAttribs[1].shaderLocation = 1;
-    m_vertexAttribs[1].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
-    m_vertexAttribs[1].offset = offsetof(Vertex, normal);
-
-    m_vertexAttribs[2].shaderLocation = 2;
-    m_vertexAttribs[2].format = WGPUVertexFormat::WGPUVertexFormat_Float32x2;
-    m_vertexAttribs[2].offset = offsetof(Vertex, uv);
-
-    m_vertexAttribs[3].shaderLocation = 3;
-    m_vertexAttribs[3].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
-    m_vertexAttribs[3].offset = offsetof(Vertex, tangent);
-
-    m_vertexAttribs[4].shaderLocation = 4;
-    m_vertexAttribs[4].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
-    m_vertexAttribs[4].offset = offsetof(Vertex, bitangent);
-
-    m_vertexBufferLayout.attributeCount = m_vertexAttribs.size();
-    m_vertexBufferLayout.attributes     = m_vertexAttribs.data();
-    m_vertexBufferLayout.arrayStride    = sizeof(Vertex);
-    m_vertexBufferLayout.stepMode       = WGPUVertexStepMode_Vertex;
 }
 
 const Mesh &VertexBuffer::getMesh() const { return *m_mesh; }
+
+VertexBuffer::Layout::Layout()
+{
+    // Position
+    vertexAttribs[0].shaderLocation = 0;
+    vertexAttribs[0].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    vertexAttribs[0].offset = offsetof(Vertex, position);
+
+    // Normal
+    vertexAttribs[1].shaderLocation = 1;
+    vertexAttribs[1].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    vertexAttribs[1].offset = offsetof(Vertex, normal);
+
+    vertexAttribs[2].shaderLocation = 2;
+    vertexAttribs[2].format = WGPUVertexFormat::WGPUVertexFormat_Float32x2;
+    vertexAttribs[2].offset = offsetof(Vertex, uv);
+
+    vertexAttribs[3].shaderLocation = 3;
+    vertexAttribs[3].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    vertexAttribs[3].offset = offsetof(Vertex, tangent);
+
+    vertexAttribs[4].shaderLocation = 4;
+    vertexAttribs[4].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    vertexAttribs[4].offset = offsetof(Vertex, bitangent);
+
+    layout.attributeCount = vertexAttribs.size();
+    layout.attributes     = vertexAttribs.data();
+    layout.arrayStride    = sizeof(Vertex);
+    layout.stepMode       = WGPUVertexStepMode_Vertex;
+}

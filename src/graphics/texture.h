@@ -3,7 +3,7 @@
 #include <webgpu/webgpu.h>
 #include <glm/glm.hpp>
 
-#include "gpu.h"
+class Gpu;
 
 class Texture
 {

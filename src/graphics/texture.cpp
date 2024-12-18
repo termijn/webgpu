@@ -1,4 +1,5 @@
 #include "texture.h"
+#include "graphics/gpu.h"
 
 Texture::Texture(Gpu& gpu, Format format)
     : m_gpu     (gpu)
