@@ -6,8 +6,8 @@ using namespace glm;
 RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget)
     : m_gpu           (gpu)
     , m_renderTarget  (renderTarget)
-    , m_uniformsFrame (gpu, m_frameData)
-    , m_uniformsModel (gpu, m_modelData)
+    , m_uniformsFrame (gpu)
+    , m_uniformsModel (gpu)
 {
     createPipeline();
 }
@@ -23,6 +23,37 @@ RenderPass::~RenderPass()
         wgpuBindGroupLayoutRelease(layout);
 
     wgpuRenderPipelineRelease(m_pipeline);
+}
+
+void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables)
+{
+    m_uniformsFrame.setSize(1);
+    m_uniformsFrame.writeChanges(0, m_frameData);
+
+    bool sizeChanged = m_uniformsModel.setSize(renderables.size());
+
+    if (sizeChanged)
+        createBindings();
+
+    int index = 0;
+    for (const Renderable* renderable : renderables)
+    {
+        ModelData data;
+        data.model          = mat4(1.0);
+        data.modelInverse   = mat4(1.0);
+        m_uniformsModel.writeChanges(index, data);
+        uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
+
+        VertexBuffer& vertexBuffer = m_gpu.getResourcePool().get(renderable);
+
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, m_bindGroups[0], 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, m_bindGroups[1], 1, &dataOffset);
+
+        wgpuRenderPassEncoderSetIndexBuffer (renderPass, vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(vertexBuffer.m_indexBuffer));
+        wgpuRenderPassEncoderSetVertexBuffer(renderPass,  0, vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(vertexBuffer.m_vertexBuffer));
+        wgpuRenderPassEncoderDrawIndexed    (renderPass, vertexBuffer.m_mesh->indices().size() * 3, 1, 0, 0, 0);
+        index++;
+    }
 }
 
 void RenderPass::renderPre(const RenderParams& params)
@@ -83,9 +114,6 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
     wgpuRenderPassEncoderSetViewport(renderPass, 0, 0, size.x, size.y, 0.0, 1.0);
     wgpuRenderPassEncoderSetPipeline(renderPass, m_pipeline);
 
-    wgpuRenderPassEncoderSetBindGroup(renderPass, 0, m_bindGroups[0], 0, nullptr);
-    wgpuRenderPassEncoderSetBindGroup(renderPass, 1, m_bindGroups[1], 0, nullptr);
-
     drawCommands(renderPass, renderables);
 
     wgpuRenderPassEncoderEnd(renderPass);
@@ -106,21 +134,6 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
 #elif defined(WEBGPU_BACKEND_WGPU)
     wgpuDevicePoll(device, false, nullptr);
 #endif
-}
-
-void RenderPass::drawCommands(WGPURenderPassEncoder encoder, const std::vector<const Renderable*>& renderables)
-{
-    m_uniformsFrame.writeChanges();
-    m_uniformsModel.writeChanges();
-
-    for (const Renderable* renderable : renderables)
-    {
-        VertexBuffer& vertexBuffer = m_gpu.getResourcePool().get(renderable);
-
-        wgpuRenderPassEncoderSetIndexBuffer (encoder, vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(vertexBuffer.m_indexBuffer));
-        wgpuRenderPassEncoderSetVertexBuffer(encoder,  0, vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(vertexBuffer.m_vertexBuffer));
-        wgpuRenderPassEncoderDrawIndexed    (encoder, vertexBuffer.m_mesh->indices().size() * 3, 1, 0, 0, 0);
-    }
 }
 
 void setDefault(WGPUBindGroupLayoutEntry &bindingLayout) 
@@ -242,8 +255,7 @@ void RenderPass::createPipeline()
     createLayout(pipelineDesc);
     createBindings();
 
-    // Samples per pixel
-    pipelineDesc.multisample.count  = 16;
+    pipelineDesc.multisample.count  = 4;
     pipelineDesc.multisample.mask   = ~0u;
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
 
@@ -260,6 +272,7 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     entry0.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
     entry0.buffer.type = WGPUBufferBindingType_Uniform;
     entry0.buffer.minBindingSize = sizeof(FrameData);
+    entry0.buffer.hasDynamicOffset = false;
 
     WGPUBindGroupLayoutEntry entry1{};
     setDefault(entry1);
@@ -267,14 +280,17 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     entry1.visibility = WGPUShaderStage_Vertex;
     entry1.buffer.type = WGPUBufferBindingType_Uniform;
     entry1.buffer.minBindingSize = sizeof(ModelData);
+    entry1.buffer.hasDynamicOffset = true;
 
     WGPUBindGroupLayoutDescriptor groupLayout0{};
+    groupLayout0.label = "grouplayout0";
     groupLayout0.nextInChain = nullptr;
     groupLayout0.entryCount = 1;
     groupLayout0.entries = &entry0;
     m_bindGroupLayouts[0] = wgpuDeviceCreateBindGroupLayout(m_gpu.m_device, &groupLayout0);
 
     WGPUBindGroupLayoutDescriptor groupLayout1{};
+    groupLayout1.label = "grouplayout1";
     groupLayout1.nextInChain = nullptr;
     groupLayout1.entryCount = 1;
     groupLayout1.entries = &entry1;
@@ -291,17 +307,20 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 
 void RenderPass::createBindings()
 {
+    // for (WGPUBindGroup& group : m_bindGroups)
+    //     wgpuBindGroupRelease(group);
+
     WGPUBindGroupEntry entry0{};
     entry0.nextInChain = nullptr;
     entry0.binding = 0; 
-    entry0.buffer = m_uniformsFrame.buffer;
+    entry0.buffer = m_uniformsFrame.m_buffer;
     entry0.offset = 0;
     entry0.size = sizeof(FrameData);
 
     WGPUBindGroupEntry entry1{};
     entry1.nextInChain = nullptr;
     entry1.binding = 0; 
-    entry1.buffer = m_uniformsModel.buffer;
+    entry1.buffer = m_uniformsModel.m_buffer;
     entry1.offset = 0;
     entry1.size = sizeof(ModelData);
 

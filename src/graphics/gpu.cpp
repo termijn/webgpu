@@ -58,6 +58,19 @@ std::string Gpu::compileShader(const std::string& filepath)
     return result;
 }
 
+uint32_t ceilToNextMultiple(uint32_t value, uint32_t step) {
+    uint32_t divide_and_ceil = value / step + (value % step == 0 ? 0 : 1);
+    return step * divide_and_ceil;
+}
+
+uint32_t Gpu::uniformStride(uint32_t uniformSize) const
+{
+    uint32_t uniformStride = ceilToNextMultiple(
+      uniformSize,
+      m_requiredLimits.limits.minUniformBufferOffsetAlignment);
+    return uniformStride;
+}
+
 WGPUInstance Gpu::getInstance()
 {
     return m_instance;
@@ -114,11 +127,13 @@ WGPUCommandEncoder Gpu::createCommandEncoder()
 
 WGPUDevice Gpu::createDevice(WGPUAdapter adapter)
 {
+    m_requiredLimits = getRequiredLimits(adapter);
+
     WGPUDeviceDescriptor deviceDesc = {};
     deviceDesc.nextInChain = nullptr;
     deviceDesc.label = "Video device";
     deviceDesc.requiredFeatureCount = 0; // we do not require any specific feature
-    deviceDesc.requiredLimits = nullptr; // we do not require any specific limit
+    deviceDesc.requiredLimits = &m_requiredLimits; // we do not require any specific limit
     deviceDesc.defaultQueue.nextInChain = nullptr;
     deviceDesc.defaultQueue.label = "Default queue";
     deviceDesc.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void* /* pUserData */)
@@ -353,7 +368,7 @@ WGPURequiredLimits Gpu::getRequiredLimits(WGPUAdapter adapter) const
     // We should also tell that we use 1 vertex buffers
     requiredLimits.limits.maxVertexBuffers = 1;
     // Maximum size of a buffer is 6 vertices of 5 float each
-    requiredLimits.limits.maxBufferSize = 256 * 1024 * 1024 * sizeof(Vertex);
+    requiredLimits.limits.maxBufferSize = supportedLimits.limits.maxBufferSize;
     requiredLimits.limits.maxVertexBufferArrayStride = sizeof(Vertex);
     requiredLimits.limits.maxInterStageShaderComponents = 3;
     

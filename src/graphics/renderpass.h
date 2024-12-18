@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include <webgpu/webgpu.h>
+
 #include "gpu.h"
 #include "rendertarget.h"
 #include "vertexbuffer.h"
@@ -66,5 +68,5 @@ private:
     void createPipeline();
     void createLayout(WGPURenderPipelineDescriptor& pipeline);
     void createBindings();
-    void drawCommands(WGPURenderPassEncoder encoder, const std::vector<const Renderable*>& renderables);
+    void drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables);
 };

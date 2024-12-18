@@ -22,11 +22,14 @@ public:
 
     std::string compileShader(const std::string& file);
 
+    uint32_t uniformStride(uint32_t uniformSize) const;
+
 private:
     WGPUInstance    m_instance;
     WGPUDevice      m_device;
     WGPUAdapter     m_adapter;
     WGPUQueue       m_queue;
+    WGPURequiredLimits m_requiredLimits{};
 
     ResourcePool m_resourcePool;
 
