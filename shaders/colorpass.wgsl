@@ -26,7 +26,7 @@ struct Frame
 struct Model
 {
     model:          mat4x4f,
-    modelInverse:   mat4x4f
+    modelInverseTranspose:   mat4x4f
 }
 
 @group(0)
@@ -41,8 +41,9 @@ var<uniform> model: Model;
 fn vs_main(in: VertexInput) -> VertexOutput
 {
     var out: VertexOutput;
+
     out.position            = frame.projection * frame.view * model.model * in.position;
-    out.normal              = model.modelInverse * in.normal;
+    out.normal              = model.modelInverseTranspose * in.normal;
     out.viewPositionWorld   = frame.viewPositionWorld;
     out.fragPositionWorld   = model.model * in.position;
     return out;

@@ -23,8 +23,8 @@ struct FrameData
 
 struct ModelData
 {
-    glm::mat4 model         = glm::mat4(1.0);
-    glm::mat4 modelInverse  = glm::mat4(1.0);
+    glm::mat4 model                  = glm::mat4(1.0);
+    glm::mat4 modelInverseTranspose  = glm::mat4(1.0);
 
     bool operator==(const ModelData& other) const;
     bool operator!=(const ModelData& other) const;

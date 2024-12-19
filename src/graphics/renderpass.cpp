@@ -38,9 +38,12 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
     int index = 0;
     for (const Renderable* renderable : renderables)
     {
-        ModelData data;
-        data.model          = renderable->object->getSpace().toRoot;
-        data.modelInverse   = renderable->object->getSpace().fromRoot;
+        ModelData data
+        {
+            .model                   = renderable->object->getSpace().toRoot,
+            .modelInverseTranspose   = transpose(renderable->object->getSpace().fromRoot)
+        };
+
         m_uniformsModel.writeChanges(index, data);
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
@@ -253,7 +256,6 @@ void RenderPass::createPipeline()
     pipelineDesc.fragment       = &fragmentState;
 
     createLayout(pipelineDesc);
-    createBindings();
 
     pipelineDesc.multisample.count  = 4;
     pipelineDesc.multisample.mask   = ~0u;
@@ -358,7 +360,7 @@ bool ModelData::operator==(const ModelData& other) const
 {
     return 
         model == other.model &&
-        modelInverse == other.modelInverse;
+        modelInverseTranspose == other.modelInverseTranspose;
 }
 
 bool ModelData::operator!=(const ModelData& other) const

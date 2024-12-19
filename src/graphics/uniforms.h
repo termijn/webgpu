@@ -22,7 +22,7 @@ public:
 
     bool setSize(int newSize)
     {
-        if (newSize == m_lastWrittenData.size())
+        if (newSize == m_lastWrittenData.size() && m_buffer != nullptr)
             return false;
 
         if (m_buffer != nullptr)
