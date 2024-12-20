@@ -5,13 +5,18 @@ A web renderer for gltf models. Built to experiment and learn webassembly and we
 Current status:
 ![Screenshot](./images/screenshot.png)
 
-- implemented features
+- Implemented features
+    * MSAA
     * base color texture
     * normal map
     * ambient occlusion map
     * diffuse shading
-- todo
+
+- Todo
+    * PBR shading
+    * emissive map
     * shadow map
+    * generate mip map levels
     * reflection map
     * HDR
-    * PBR shading
+    * webassembly build
