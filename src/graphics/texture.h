@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu.h>
 #include <glm/glm.hpp>
+#include "image.h"
 
 class Gpu;
 
@@ -13,7 +14,7 @@ public:
     {
         Depth,
         RGBA,
-        RGB,
+        BGRA
     };
 
     enum class Usage
@@ -34,6 +35,7 @@ public:
     ~Texture();
 
     void setSize(glm::vec2 size);
+    void setImage(const Image& image);
 
     WGPUTextureView&         getTextureView();
 
@@ -43,5 +45,10 @@ private:
     WGPUTextureDescriptor   m_textureDesc;
     WGPUTexture             m_texture       = nullptr;
     WGPUTextureView         m_textureView   = nullptr;
+
+    void writeMipMaps(
+        WGPUExtent3D    textureSize,
+        [[maybe_unused]] uint32_t mipLevelCount, // not used yet
+        const unsigned char* pixelData);
 
 };

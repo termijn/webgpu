@@ -9,26 +9,7 @@
 #include "vertexbuffer.h"
 #include "uniforms.h"
 #include "renderable.h"
-
-struct FrameData
-{
-    glm::mat4 view                  = glm::mat4(1.0);
-    glm::mat4 projection            = glm::mat4(1.0);
-    glm::vec4 viewPositionWorld     = glm::vec4(0.0);
-    glm::vec4 lightPositionWorld    = glm::vec4(0.0);
-
-    bool operator==(const FrameData& other) const;
-    bool operator!=(const FrameData& other) const;
-};
-
-struct ModelData
-{
-    glm::mat4 model                  = glm::mat4(1.0);
-    glm::mat4 modelInverseTranspose  = glm::mat4(1.0);
-
-    bool operator==(const ModelData& other) const;
-    bool operator!=(const ModelData& other) const;
-};
+#include "uniformsdata.h"
 
 class RenderPass
 {
@@ -44,8 +25,8 @@ public:
         glm::vec4 lightPosWorld;
     };
 
-    void renderPre(const RenderParams& params);
-    void render(const std::vector<const Renderable*>& renderables);
+    void renderPre  (const RenderParams& params);
+    void render     (const std::vector<const Renderable*>& renderables);
 
 private:
     Gpu&                m_gpu;
@@ -67,6 +48,6 @@ private:
 
     void createPipeline();
     void createLayout(WGPURenderPipelineDescriptor& pipeline);
-    void createBindings();
+    void createBindings(Texture& texture);
     void drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables);
 };

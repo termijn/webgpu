@@ -575,7 +575,7 @@ Image loadImage(const std::string &filePath)
 {
     std::cout << "loadImage() - " << filePath << std::endl;
     int x, y, n = 0;
-    unsigned char *data = stbi_load(filePath.c_str(), &x, &y, &n, 0);
+    unsigned char *data = stbi_load(filePath.c_str(), &x, &y, &n, STBI_rgb_alpha);
 
     Image image;
     image.bytesPerPixel = n;

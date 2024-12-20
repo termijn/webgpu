@@ -25,13 +25,14 @@ public:
     uint32_t uniformStride(uint32_t uniformSize) const;
 
 private:
-    WGPUInstance    m_instance;
-    WGPUDevice      m_device;
-    WGPUAdapter     m_adapter;
-    WGPUQueue       m_queue;
-    WGPURequiredLimits m_requiredLimits{};
+    WGPUInstance        m_instance;
+    WGPUDevice          m_device;
+    WGPUAdapter         m_adapter;
+    WGPUQueue           m_queue;
+    WGPURequiredLimits  m_requiredLimits{};
+    WGPUSampler         m_linearSampler;
 
-    ResourcePool m_resourcePool;
+    std::unique_ptr<ResourcePool> m_resourcePool;
 
     WGPUCommandEncoder createCommandEncoder();
 
@@ -51,5 +52,4 @@ private:
     WGPURequiredLimits getRequiredLimits(WGPUAdapter adapter) const;
 
     WGPUInstance getInstance();
-
 };

@@ -19,7 +19,7 @@ public:
     ResourcePool(Gpu& gpu);
     ~ResourcePool();
 
-    //Texture&        get(const Image* imagree, Texture::Interpolation interpolation);
+    Texture&        get(const Image* image);
     VertexBuffer&   get(const Renderable* renderable);
   //  CubemapTexture& get(const Cubemap* cubemap);
 
@@ -27,7 +27,7 @@ private:
     Gpu& m_gpu;
 
     std::map<const std::vector<Vertex>*, VertexBuffer>   poolVertexBuffers;
-    //std::map<const uint8_t*,    Texture>                 poolTextures;
+    std::map<const uint8_t*,    Texture>                 m_poolTextures;
 //    std::map<const Cubemap*, CubemapTexture>             poolCubemaps;
 
     ResourcePool            (const ResourcePool&)   = delete;

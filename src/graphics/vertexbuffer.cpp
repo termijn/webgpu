@@ -69,16 +69,16 @@ VertexBuffer::Layout::Layout()
     vertexAttribs[1].offset = offsetof(Vertex, normal);
 
     vertexAttribs[2].shaderLocation = 2;
-    vertexAttribs[2].format = WGPUVertexFormat::WGPUVertexFormat_Float32x2;
-    vertexAttribs[2].offset = offsetof(Vertex, uv);
+    vertexAttribs[2].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
+    vertexAttribs[2].offset = offsetof(Vertex, tangent);
 
     vertexAttribs[3].shaderLocation = 3;
     vertexAttribs[3].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
-    vertexAttribs[3].offset = offsetof(Vertex, tangent);
+    vertexAttribs[3].offset = offsetof(Vertex, bitangent);
 
     vertexAttribs[4].shaderLocation = 4;
-    vertexAttribs[4].format = WGPUVertexFormat::WGPUVertexFormat_Float32x4;
-    vertexAttribs[4].offset = offsetof(Vertex, bitangent);
+    vertexAttribs[4].format = WGPUVertexFormat::WGPUVertexFormat_Float32x2;
+    vertexAttribs[4].offset = offsetof(Vertex, uv);
 
     layout.attributeCount = vertexAttribs.size();
     layout.attributes     = vertexAttribs.data();

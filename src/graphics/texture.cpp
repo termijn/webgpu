@@ -1,6 +1,8 @@
 #include "texture.h"
 #include "graphics/gpu.h"
 
+using namespace glm;
+
 Texture::Texture(Gpu& gpu, Params params)
     : m_gpu     (gpu)
     , m_params  (params)
@@ -19,7 +21,6 @@ Texture::Texture(Gpu& gpu, Params params)
         case Usage::TextureBinding:
             wgpuUsage = WGPUTextureUsage_TextureBinding;
             break;
-
     }
 
     switch (params.format)
@@ -28,21 +29,22 @@ Texture::Texture(Gpu& gpu, Params params)
             wgpuFormat = WGPUTextureFormat_Depth24Plus;
             break;
         case Format::RGBA:
+            wgpuFormat = WGPUTextureFormat_RGBA8Unorm;
+            break;
+        case Format::BGRA:
             wgpuFormat = WGPUTextureFormat_BGRA8Unorm;
             break;
-        case Format::RGB:
-            wgpuFormat = WGPUTextureFormat_ETC2RGB8Unorm;
-            break;
     }
-    m_textureDesc.nextInChain = nullptr;
-    m_textureDesc.dimension = WGPUTextureDimension_2D;
-    m_textureDesc.format = wgpuFormat;
+    m_textureDesc.nextInChain   = nullptr;
+    m_textureDesc.dimension     = WGPUTextureDimension_2D;
+    m_textureDesc.format        = wgpuFormat;
     m_textureDesc.mipLevelCount = 1;
-    m_textureDesc.sampleCount = params.sampleCount;
-    m_textureDesc.size = {1, 1, 1};
-    m_textureDesc.usage = wgpuUsage;
-    m_textureDesc.viewFormatCount = 1;
-    m_textureDesc.viewFormats = &m_textureDesc.format;
+    m_textureDesc.sampleCount   = params.sampleCount;
+    m_textureDesc.size          = {1, 1, 1};
+    m_textureDesc.usage         = wgpuUsage;
+
+    m_textureDesc.viewFormatCount   = 0;
+    m_textureDesc.viewFormats       = nullptr;
 }
 
 Texture::~Texture() 
@@ -57,9 +59,9 @@ Texture::~Texture()
     m_textureView   = nullptr;
 };
 
-void Texture::setSize(glm::vec2 size)
+void Texture::setSize(vec2 size)
 {
-    glm::uvec2 newSize (static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y));
+    uvec2 newSize (static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y));
 
     if (newSize.x != m_textureDesc.size.width || newSize.y != m_textureDesc.size.height)
     {
@@ -84,7 +86,42 @@ void Texture::setSize(glm::vec2 size)
         textureViewDesc.format = m_textureDesc.format;
         m_textureView = wgpuTextureCreateView(m_texture, &textureViewDesc);
     }
+}
 
+void Texture::writeMipMaps(
+        WGPUExtent3D    textureSize,
+        [[maybe_unused]] uint32_t mipLevelCount, // not used yet
+        const uint8_t* pixelData)
+{
+    WGPUImageCopyTexture destination = {};
+    destination.texture = m_texture;
+    destination.mipLevel = 0;
+    destination.origin = { 0, 0, 0 };
+    destination.aspect = WGPUTextureAspect_All;
+
+    WGPUTextureDataLayout source = {};
+    source.offset = 0; 
+    source.bytesPerRow = 4 * textureSize.width;
+    source.rowsPerImage = textureSize.height;
+    source.nextInChain = nullptr;
+
+    wgpuQueueWriteTexture(m_gpu.m_queue, &destination, pixelData, 4 * textureSize.width * textureSize.height, &source, &textureSize);
+}
+
+void Texture::setImage(const Image& image)
+{
+    setSize(vec2(image.width, image.height));
+    assert(image.bytesPerPixel == 4 || image.bytesPerPixel == 3);
+
+    if (image.type == Image::Type::RGB) 
+    {
+        // TODO: Convert to rgba
+    }
+
+    if (image.type == Image::Type::RGBA)
+    {
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, image.pixels->data());
+    }
 }
 
 WGPUTextureView& Texture::getTextureView()

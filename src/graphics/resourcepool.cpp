@@ -10,17 +10,35 @@ ResourcePool::ResourcePool(Gpu& gpu)
 {
 
 }
-ResourcePool::~ResourcePool() = default;
+ResourcePool::~ResourcePool() 
+{
+    
+};
 
-// Texture &ResourcePool::get(const Image *image, Texture::Interpolation interpolation)
-// {
-//     if (!poolTextures.contains(image->getPixels()))
-//     {
-//         poolTextures.emplace(image->getPixels(), Texture());
-//         poolTextures[image->getPixels()].setImage(*image, interpolation);
-//     }
-//     return poolTextures[image->getPixels()];
-// }
+Texture& ResourcePool::get(const Image* image)
+{
+    auto it = m_poolTextures.find(image->getPixels());
+    if (it == m_poolTextures.end()) 
+    {
+        Texture::Params params
+        {
+            .format = Texture::Format::RGBA,
+            .sampleCount = 1,
+            .usage = Texture::Usage::CopySrcTextureBinding
+        };
+        auto [newIt, inserted] = m_poolTextures.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(image->getPixels()),
+            std::forward_as_tuple(m_gpu, params)
+        );
+
+        if (inserted) {
+            newIt->second.setImage(*image);
+        }
+        it = newIt;
+    }
+    return it->second;
+}
 
 VertexBuffer &ResourcePool::get(const Renderable *renderable)
 {

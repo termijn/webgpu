@@ -8,7 +8,7 @@
 #include "mesh.h"
 
 Gpu::Gpu()
-    : m_resourcePool(*this)
+    : m_resourcePool(std::make_unique<ResourcePool>(*this))
 {
     m_instance = createInstance();
     std::cout << "WGPU instance: " << m_instance << std::endl;
@@ -25,10 +25,27 @@ Gpu::Gpu()
     enumerateDeviceFeatures(m_device);
 
     m_queue = createQueue(m_device);
+
+    WGPUSamplerDescriptor samplerDesc{};
+    samplerDesc.nextInChain = nullptr;
+    samplerDesc.label = "linearSampler";
+    samplerDesc.addressModeU = WGPUAddressMode_Repeat;
+    samplerDesc.addressModeV = WGPUAddressMode_Repeat;
+    samplerDesc.addressModeW = WGPUAddressMode_Repeat;
+    samplerDesc.magFilter = WGPUFilterMode_Linear;
+    samplerDesc.minFilter = WGPUFilterMode_Linear;
+    samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
+    samplerDesc.lodMinClamp = 0.0f;
+    samplerDesc.lodMaxClamp = 1.0f;
+    samplerDesc.compare = WGPUCompareFunction_Undefined;
+    samplerDesc.maxAnisotropy = 4;
+    m_linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
 }
 
 Gpu::~Gpu()
 {
+    m_resourcePool = nullptr;
+    wgpuSamplerRelease(m_linearSampler);
     wgpuQueueRelease(m_queue);
     wgpuAdapterRelease(m_adapter);
     wgpuDeviceRelease(m_device);
@@ -36,7 +53,7 @@ Gpu::~Gpu()
 
 ResourcePool& Gpu::getResourcePool()
 {
-    return m_resourcePool;
+    return *m_resourcePool;
 }
 
 std::string Gpu::compileShader(const std::string& filepath)
@@ -379,5 +396,7 @@ WGPURequiredLimits Gpu::getRequiredLimits(WGPUAdapter adapter) const
     requiredLimits.limits.maxTextureDimension1D = 2048;
     requiredLimits.limits.maxTextureDimension2D = 2048;
     requiredLimits.limits.maxTextureArrayLayers = 1;
+    requiredLimits.limits.maxSamplersPerShaderStage = 1;
+
     return requiredLimits;
 }

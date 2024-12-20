@@ -32,8 +32,8 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
 
     bool nrRenderablesChanged = m_uniformsModel.setSize(renderables.size());
 
-    if (nrRenderablesChanged)
-        createBindings();
+    // if (nrRenderablesChanged)
+    //     createBindings();
 
     int index = 0;
     for (const Renderable* renderable : renderables)
@@ -43,8 +43,15 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
             .model                   = renderable->object->getSpace().toRoot,
             .modelInverseTranspose   = transpose(renderable->object->getSpace().fromRoot)
         };
-
         m_uniformsModel.writeChanges(index, data);
+
+        if (renderable->material.baseColorTexture.has_value())
+        {
+            const Image& image = renderable->material.baseColorTexture.value();
+            Texture& texture = m_gpu.getResourcePool().get(&image);
+            createBindings(texture);
+        }
+
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
         VertexBuffer& vertexBuffer = m_gpu.getResourcePool().get(renderable);
@@ -268,46 +275,61 @@ void RenderPass::createPipeline()
 
 void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 {
-    WGPUBindGroupLayoutEntry entry0{};
-    setDefault(entry0);
-    entry0.binding = 0;
-    entry0.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
-    entry0.buffer.type = WGPUBufferBindingType_Uniform;
-    entry0.buffer.minBindingSize = sizeof(FrameData);
-    entry0.buffer.hasDynamicOffset = false;
+    WGPUBindGroupLayoutEntry entryFrameUniforms{};
+    setDefault(entryFrameUniforms);
+    entryFrameUniforms.binding = 0;
+    entryFrameUniforms.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+    entryFrameUniforms.buffer.type = WGPUBufferBindingType_Uniform;
+    entryFrameUniforms.buffer.minBindingSize = sizeof(FrameData);
+    entryFrameUniforms.buffer.hasDynamicOffset = false;
 
-    WGPUBindGroupLayoutEntry entry1{};
-    setDefault(entry1);
-    entry1.binding = 0;
-    entry1.visibility = WGPUShaderStage_Vertex;
-    entry1.buffer.type = WGPUBufferBindingType_Uniform;
-    entry1.buffer.minBindingSize = sizeof(ModelData);
-    entry1.buffer.hasDynamicOffset = true;
+    std::array<WGPUBindGroupLayoutEntry, 3> modelEntries{};
 
-    WGPUBindGroupLayoutDescriptor groupLayout0{};
-    groupLayout0.label = "grouplayout0";
-    groupLayout0.nextInChain = nullptr;
-    groupLayout0.entryCount = 1;
-    groupLayout0.entries = &entry0;
-    m_bindGroupLayouts[0] = wgpuDeviceCreateBindGroupLayout(m_gpu.m_device, &groupLayout0);
+    WGPUBindGroupLayoutEntry& entryModelUniforms  = modelEntries[0];
+    setDefault(entryModelUniforms);
+    entryModelUniforms.binding = 0;
+    entryModelUniforms.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+    entryModelUniforms.buffer.type = WGPUBufferBindingType_Uniform;
+    entryModelUniforms.buffer.minBindingSize = sizeof(ModelData);
+    entryModelUniforms.buffer.hasDynamicOffset = true;
 
-    WGPUBindGroupLayoutDescriptor groupLayout1{};
-    groupLayout1.label = "grouplayout1";
-    groupLayout1.nextInChain = nullptr;
-    groupLayout1.entryCount = 1;
-    groupLayout1.entries = &entry1;
-    m_bindGroupLayouts[1] = wgpuDeviceCreateBindGroupLayout(m_gpu.m_device, &groupLayout1);
+    WGPUBindGroupLayoutEntry& entryModelBaseColorTexture = modelEntries[1];
+    setDefault(entryModelBaseColorTexture);
+    entryModelBaseColorTexture.binding = 1;
+    entryModelBaseColorTexture.visibility = WGPUShaderStage_Fragment;
+    entryModelBaseColorTexture.texture.sampleType = WGPUTextureSampleType_Float;
+    entryModelBaseColorTexture.texture.viewDimension = WGPUTextureViewDimension_2D;
+    entryModelBaseColorTexture.texture.multisampled = false;
+
+    WGPUBindGroupLayoutEntry& samplerBindingLayout = modelEntries[2];
+    samplerBindingLayout.binding = 2;
+    samplerBindingLayout.visibility = WGPUShaderStage_Fragment;
+    samplerBindingLayout.sampler.type = WGPUSamplerBindingType_Filtering;
+
+    WGPUBindGroupLayoutDescriptor groupLayoutFrame{};
+    groupLayoutFrame.label = "grouplayout0 - per frame data";
+    groupLayoutFrame.nextInChain = nullptr;
+    groupLayoutFrame.entryCount = 1;
+    groupLayoutFrame.entries = &entryFrameUniforms;
+    m_bindGroupLayouts[0] = wgpuDeviceCreateBindGroupLayout(m_gpu.m_device, &groupLayoutFrame);
+
+    WGPUBindGroupLayoutDescriptor groupLayoutModel{};
+    groupLayoutModel.label = "grouplayout1 - per model data";
+    groupLayoutModel.nextInChain = nullptr;
+    groupLayoutModel.entryCount = modelEntries.size();
+    groupLayoutModel.entries = modelEntries.data();
+    m_bindGroupLayouts[1] = wgpuDeviceCreateBindGroupLayout(m_gpu.m_device, &groupLayoutModel);
 
     WGPUPipelineLayoutDescriptor layoutDesc{};
     layoutDesc.nextInChain          = nullptr;
-    layoutDesc.bindGroupLayoutCount = 2;
+    layoutDesc.bindGroupLayoutCount = m_bindGroupLayouts.size();
     layoutDesc.bindGroupLayouts     = m_bindGroupLayouts.data();
     m_layout = wgpuDeviceCreatePipelineLayout(m_gpu.m_device, &layoutDesc);
 
     pipeline.layout = m_layout;
 }
 
-void RenderPass::createBindings()
+void RenderPass::createBindings(Texture& baseColorTexture)
 {
     for (WGPUBindGroup& group : m_bindGroups) if (group != nullptr)
         wgpuBindGroupRelease(group);
@@ -319,12 +341,22 @@ void RenderPass::createBindings()
     entry0.offset = 0;
     entry0.size = sizeof(FrameData);
 
-    WGPUBindGroupEntry entry1{};
+    std::array<WGPUBindGroupEntry, 3> bindings{};
+    
+    WGPUBindGroupEntry& entry1 = bindings[0];
     entry1.nextInChain = nullptr;
     entry1.binding = 0; 
     entry1.buffer = m_uniformsModel.m_buffer;
     entry1.offset = 0;
     entry1.size = sizeof(ModelData);
+
+    WGPUBindGroupEntry& entryBaseColorTexture = bindings[1];
+    entryBaseColorTexture.binding = 1;
+    entryBaseColorTexture.textureView = baseColorTexture.getTextureView();
+
+    WGPUBindGroupEntry& entrySampler = bindings[2];
+    entrySampler.binding = 2;
+    entrySampler.sampler = m_gpu.m_linearSampler;
 
     WGPUBindGroupDescriptor group0{};
     group0.nextInChain   = nullptr;
@@ -335,36 +367,9 @@ void RenderPass::createBindings()
     WGPUBindGroupDescriptor group1{};
     group1.nextInChain   = nullptr;
     group1.layout        = m_bindGroupLayouts[1];
-    group1.entryCount    = 1;
-    group1.entries       = &entry1;
+    group1.entryCount    = bindings.size();
+    group1.entries       = bindings.data();
 
     m_bindGroups[0] = wgpuDeviceCreateBindGroup(m_gpu.m_device, &group0);
     m_bindGroups[1] = wgpuDeviceCreateBindGroup(m_gpu.m_device, &group1);
 }
-
-bool FrameData::operator==(const FrameData& other) const
-{
-    return 
-        view == other.view &&
-        projection == other.projection &&
-        viewPositionWorld == other.viewPositionWorld &&
-        lightPositionWorld == other.lightPositionWorld;
-}
-
-bool FrameData::operator!=(const FrameData& other) const
-{
-    return !(*this == other);
-}
-
-bool ModelData::operator==(const ModelData& other) const
-{
-    return 
-        model == other.model &&
-        modelInverseTranspose == other.modelInverseTranspose;
-}
-
-bool ModelData::operator!=(const ModelData& other) const
-{
-    return !(*this == other);
-}
-

@@ -41,6 +41,7 @@ else()
           ${CMAKE_COMMAND} -E copy_if_different
           ${SHADER_SOURCE}
           $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/shaders/colorpass.wgsl
+        COMMAND ${CMAKE_COMMAND} -E echo "Copying shader file: ${SHADER_SOURCE}"
       )
 
     set(MODEL_SOURCE "${CMAKE_SOURCE_DIR}/models/DamagedHelmet.glb")

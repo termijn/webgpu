@@ -29,9 +29,9 @@ public:
             wgpuBufferRelease(m_buffer);
 
         uint32_t stride = m_gpu.uniformStride(sizeof(T));
-        m_bufferDesc.size = stride * newSize;
-        m_bufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
-        m_bufferDesc.mappedAtCreation = false;
+        m_bufferDesc.size               = stride * newSize;
+        m_bufferDesc.usage              = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
+        m_bufferDesc.mappedAtCreation   = false;
         m_buffer = wgpuDeviceCreateBuffer(m_gpu.m_device, &m_bufferDesc);
 
         m_lastWrittenData   .resize(newSize);
