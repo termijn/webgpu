@@ -34,6 +34,12 @@ Texture::Texture(Gpu& gpu, Params params)
         case Format::BGRA:
             wgpuFormat = WGPUTextureFormat_BGRA8Unorm;
             break;
+        case Format::R:
+            wgpuFormat = WGPUTextureFormat_R8Unorm;
+            break;
+        case Format::RG:
+            wgpuFormat = WGPUTextureFormat_RG8Unorm;
+            break;
     }
     m_textureDesc.nextInChain   = nullptr;
     m_textureDesc.dimension     = WGPUTextureDimension_2D;
@@ -91,6 +97,7 @@ void Texture::setSize(vec2 size)
 void Texture::writeMipMaps(
         WGPUExtent3D    textureSize,
         [[maybe_unused]] uint32_t mipLevelCount, // not used yet
+        int bytesPerPixel,
         const uint8_t* pixelData)
 {
     WGPUImageCopyTexture destination = {};
@@ -101,11 +108,11 @@ void Texture::writeMipMaps(
 
     WGPUTextureDataLayout source = {};
     source.offset = 0; 
-    source.bytesPerRow = 4 * textureSize.width;
+    source.bytesPerRow = bytesPerPixel * textureSize.width;
     source.rowsPerImage = textureSize.height;
     source.nextInChain = nullptr;
 
-    wgpuQueueWriteTexture(m_gpu.m_queue, &destination, pixelData, 4 * textureSize.width * textureSize.height, &source, &textureSize);
+    wgpuQueueWriteTexture(m_gpu.m_queue, &destination, pixelData, bytesPerPixel * textureSize.width * textureSize.height, &source, &textureSize);
 }
 
 void Texture::setImage(const Image& image)
@@ -113,14 +120,14 @@ void Texture::setImage(const Image& image)
     setSize(vec2(image.width, image.height));
     assert(image.bytesPerPixel == 4 || image.bytesPerPixel == 3);
 
-    if (image.type == Image::Type::RGB) 
+    if (image.type == Image::Type::R8) 
     {
-        // TODO: Convert to rgba
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, 1, image.pixels->data());
     }
 
     if (image.type == Image::Type::RGBA)
     {
-        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, image.pixels->data());
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, 4, image.pixels->data());
     }
 }
 

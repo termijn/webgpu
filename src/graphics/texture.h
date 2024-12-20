@@ -14,7 +14,9 @@ public:
     {
         Depth,
         RGBA,
-        BGRA
+        BGRA,
+        R,
+        RG
     };
 
     enum class Usage
@@ -49,6 +51,7 @@ private:
     void writeMipMaps(
         WGPUExtent3D    textureSize,
         [[maybe_unused]] uint32_t mipLevelCount, // not used yet
+        int bytesPerPixel,
         const unsigned char* pixelData);
 
 };

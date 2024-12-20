@@ -45,12 +45,29 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         };
         m_uniformsModel.writeChanges(index, data);
 
+        Texture* baseColorTexture;
+        Texture* occlusionTexture;
+        Texture* normalsTexture;
+
         if (renderable->material.baseColorTexture.has_value())
         {
             const Image& image = renderable->material.baseColorTexture.value();
-            Texture& texture = m_gpu.getResourcePool().get(&image);
-            createBindings(texture);
+            baseColorTexture = &m_gpu.getResourcePool().get(&image);
         }
+
+        if (renderable->material.occlusion.has_value())
+        {
+            const Image& image = renderable->material.occlusion.value();
+            occlusionTexture = &m_gpu.getResourcePool().get(&image);
+        }
+
+        if (renderable->material.normalMap.has_value())
+        {
+            const Image& image = renderable->material.normalMap.value();
+            normalsTexture = &m_gpu.getResourcePool().get(&image);
+        }
+
+        createBindings(baseColorTexture, occlusionTexture, normalsTexture); 
 
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
@@ -273,39 +290,46 @@ void RenderPass::createPipeline()
     wgpuShaderModuleRelease(shaderModule);
 }
 
+void fillTextureBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding)
+{
+    setDefault(entry);
+    entry.binding               = binding;
+    entry.visibility            = WGPUShaderStage_Fragment;
+    entry.texture.sampleType    = WGPUTextureSampleType_Float;
+    entry.texture.viewDimension = WGPUTextureViewDimension_2D;
+    entry.texture.multisampled  = false;
+}
+
+void fillSamplerBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding)
+{
+    setDefault(entry);
+    entry.binding = binding;
+    entry.visibility = WGPUShaderStage_Fragment;
+    entry.sampler.type = WGPUSamplerBindingType_Filtering;
+}
+
+void fillUniformsBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding, int size, bool dynamicOffset)
+{
+    setDefault(entry);
+    entry.binding = 0;
+    entry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+    entry.buffer.type = WGPUBufferBindingType_Uniform;
+    entry.buffer.minBindingSize = size;
+    entry.buffer.hasDynamicOffset = dynamicOffset;
+}
+
 void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 {
     WGPUBindGroupLayoutEntry entryFrameUniforms{};
-    setDefault(entryFrameUniforms);
-    entryFrameUniforms.binding = 0;
-    entryFrameUniforms.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
-    entryFrameUniforms.buffer.type = WGPUBufferBindingType_Uniform;
-    entryFrameUniforms.buffer.minBindingSize = sizeof(FrameData);
-    entryFrameUniforms.buffer.hasDynamicOffset = false;
-
-    std::array<WGPUBindGroupLayoutEntry, 3> modelEntries{};
-
-    WGPUBindGroupLayoutEntry& entryModelUniforms  = modelEntries[0];
-    setDefault(entryModelUniforms);
-    entryModelUniforms.binding = 0;
-    entryModelUniforms.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
-    entryModelUniforms.buffer.type = WGPUBufferBindingType_Uniform;
-    entryModelUniforms.buffer.minBindingSize = sizeof(ModelData);
-    entryModelUniforms.buffer.hasDynamicOffset = true;
-
-    WGPUBindGroupLayoutEntry& entryModelBaseColorTexture = modelEntries[1];
-    setDefault(entryModelBaseColorTexture);
-    entryModelBaseColorTexture.binding = 1;
-    entryModelBaseColorTexture.visibility = WGPUShaderStage_Fragment;
-    entryModelBaseColorTexture.texture.sampleType = WGPUTextureSampleType_Float;
-    entryModelBaseColorTexture.texture.viewDimension = WGPUTextureViewDimension_2D;
-    entryModelBaseColorTexture.texture.multisampled = false;
-
-    WGPUBindGroupLayoutEntry& samplerBindingLayout = modelEntries[2];
-    samplerBindingLayout.binding = 2;
-    samplerBindingLayout.visibility = WGPUShaderStage_Fragment;
-    samplerBindingLayout.sampler.type = WGPUSamplerBindingType_Filtering;
-
+    fillUniformsBindGroupLayoutEntry(entryFrameUniforms, 0, sizeof(FrameData), false);
+    
+    std::array<WGPUBindGroupLayoutEntry, 5> modelEntries{};
+    fillUniformsBindGroupLayoutEntry (modelEntries[0], 0, sizeof(ModelData), true);
+    fillSamplerBindGroupLayoutEntry  (modelEntries[1], 1);
+    fillTextureBindGroupLayoutEntry  (modelEntries[2], 2);
+    fillTextureBindGroupLayoutEntry  (modelEntries[3], 3);
+    fillTextureBindGroupLayoutEntry  (modelEntries[4], 4);
+    
     WGPUBindGroupLayoutDescriptor groupLayoutFrame{};
     groupLayoutFrame.label = "grouplayout0 - per frame data";
     groupLayoutFrame.nextInChain = nullptr;
@@ -329,7 +353,7 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     pipeline.layout = m_layout;
 }
 
-void RenderPass::createBindings(Texture& baseColorTexture)
+void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture)
 {
     for (WGPUBindGroup& group : m_bindGroups) if (group != nullptr)
         wgpuBindGroupRelease(group);
@@ -341,7 +365,7 @@ void RenderPass::createBindings(Texture& baseColorTexture)
     entry0.offset = 0;
     entry0.size = sizeof(FrameData);
 
-    std::array<WGPUBindGroupEntry, 3> bindings{};
+    std::array<WGPUBindGroupEntry, 5> bindings{};
     
     WGPUBindGroupEntry& entry1 = bindings[0];
     entry1.nextInChain = nullptr;
@@ -350,13 +374,30 @@ void RenderPass::createBindings(Texture& baseColorTexture)
     entry1.offset = 0;
     entry1.size = sizeof(ModelData);
 
-    WGPUBindGroupEntry& entryBaseColorTexture = bindings[1];
-    entryBaseColorTexture.binding = 1;
-    entryBaseColorTexture.textureView = baseColorTexture.getTextureView();
-
-    WGPUBindGroupEntry& entrySampler = bindings[2];
-    entrySampler.binding = 2;
+    WGPUBindGroupEntry& entrySampler = bindings[1];
+    entrySampler.binding = 1;
     entrySampler.sampler = m_gpu.m_linearSampler;
+
+    if (baseColorTexture != nullptr)
+    {
+        WGPUBindGroupEntry& entryBaseColorTexture = bindings[2];
+        entryBaseColorTexture.binding = 2;
+        entryBaseColorTexture.textureView = baseColorTexture->getTextureView();
+    }
+
+    if (occlusionTexture != nullptr)
+    {
+        WGPUBindGroupEntry& entryOcclusionTexture = bindings[3];
+        entryOcclusionTexture.binding = 3;
+        entryOcclusionTexture.textureView = occlusionTexture->getTextureView();
+    }
+
+    if (normalsTexture != nullptr)
+    {
+        WGPUBindGroupEntry& entryNormalsTexture = bindings[4];
+        entryNormalsTexture.binding = 4;
+        entryNormalsTexture.textureView = normalsTexture->getTextureView();
+    }
 
     WGPUBindGroupDescriptor group0{};
     group0.nextInChain   = nullptr;
