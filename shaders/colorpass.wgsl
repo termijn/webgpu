@@ -16,8 +16,6 @@ struct VertexOutput
      @location(3)       uv:                 vec2f,
      @location(4)       tangent:            vec4f,
      @location(5)       bitangent:          vec4f,
-
-
 }
 
 struct Frame
