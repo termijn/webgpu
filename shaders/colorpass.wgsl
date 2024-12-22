@@ -50,6 +50,9 @@ var occlusionTexture: texture_2d<f32>;
 @group(1) @binding(4)
 var normalsTexture: texture_2d<f32>;
 
+@group(1) @binding(5)
+var emissiveTexture: texture_2d<f32>;
+
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput
 {
@@ -91,6 +94,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
     let shading         = max(0.0, dot(lightIn.xyz, normal));
     let color           = textureSample(baseColorTexture, linearSampler, in.uv).rgb;
     let occludedColor   = occlusion(color, in.uv, 1.0);
-    
-    return vec4f(occludedColor * shading + vec3f(0.1), 1.0);
+    let emissive        = textureSample(emissiveTexture, linearSampler, in.uv).rgb;
+    return vec4f(occludedColor * shading + vec3f(0.1) + emissive, 1.0);
 }

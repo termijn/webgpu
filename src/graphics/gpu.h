@@ -38,6 +38,7 @@ private:
 
     WGPUDevice  createDevice    (WGPUAdapter adapter);
     WGPUQueue   createQueue     (WGPUDevice device);
+    WGPUSampler createLinearSampler(WGPUDevice device);
     
     void        enumerateDeviceFeatures     (WGPUDevice device);
     void        enumerateAdapterProperties  (WGPUAdapter adapter);

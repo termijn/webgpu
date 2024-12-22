@@ -26,20 +26,7 @@ Gpu::Gpu()
 
     m_queue = createQueue(m_device);
 
-    WGPUSamplerDescriptor samplerDesc{};
-    samplerDesc.nextInChain = nullptr;
-    samplerDesc.label = "linearSampler";
-    samplerDesc.addressModeU = WGPUAddressMode_Repeat;
-    samplerDesc.addressModeV = WGPUAddressMode_Repeat;
-    samplerDesc.addressModeW = WGPUAddressMode_Repeat;
-    samplerDesc.magFilter = WGPUFilterMode_Linear;
-    samplerDesc.minFilter = WGPUFilterMode_Linear;
-    samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
-    samplerDesc.lodMinClamp = 0.0f;
-    samplerDesc.lodMaxClamp = 1.0f;
-    samplerDesc.compare = WGPUCompareFunction_Undefined;
-    samplerDesc.maxAnisotropy = 4;
-    m_linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
+    m_linearSampler = createLinearSampler(m_device);
 }
 
 Gpu::~Gpu()
@@ -97,6 +84,25 @@ WGPUQueue Gpu::createQueue(WGPUDevice device)
 {
     WGPUQueue queue = wgpuDeviceGetQueue(device);
     return queue;
+}
+
+WGPUSampler Gpu::createLinearSampler(WGPUDevice device)
+{
+    WGPUSamplerDescriptor samplerDesc{};
+    samplerDesc.nextInChain = nullptr;
+    samplerDesc.label = "linearSampler";
+    samplerDesc.addressModeU = WGPUAddressMode_Repeat;
+    samplerDesc.addressModeV = WGPUAddressMode_Repeat;
+    samplerDesc.addressModeW = WGPUAddressMode_Repeat;
+    samplerDesc.magFilter = WGPUFilterMode_Linear;
+    samplerDesc.minFilter = WGPUFilterMode_Linear;
+    samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
+    samplerDesc.lodMinClamp = 0.0f;
+    samplerDesc.lodMaxClamp = 1.0f;
+    samplerDesc.compare = WGPUCompareFunction_Undefined;
+    samplerDesc.maxAnisotropy = 4;
+    WGPUSampler linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
+    return linearSampler;
 }
 
 void Gpu::enumerateDeviceFeatures(WGPUDevice device)

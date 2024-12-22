@@ -48,6 +48,7 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         Texture* baseColorTexture;
         Texture* occlusionTexture;
         Texture* normalsTexture;
+        Texture* emissiveTexture;
 
         if (renderable->material.baseColorTexture.has_value())
         {
@@ -67,7 +68,13 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
             normalsTexture = &m_gpu.getResourcePool().get(&image);
         }
 
-        createBindings(baseColorTexture, occlusionTexture, normalsTexture); 
+        if (renderable->material.emissive.has_value())
+        {
+            const Image& image = renderable->material.emissive.value();
+            emissiveTexture = &m_gpu.getResourcePool().get(&image);
+        }
+
+        createBindings(baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture); 
 
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
@@ -323,12 +330,13 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     WGPUBindGroupLayoutEntry entryFrameUniforms{};
     fillUniformsBindGroupLayoutEntry(entryFrameUniforms, 0, sizeof(FrameData), false);
     
-    std::array<WGPUBindGroupLayoutEntry, 5> modelEntries{};
+    std::array<WGPUBindGroupLayoutEntry, 6> modelEntries{};
     fillUniformsBindGroupLayoutEntry (modelEntries[0], 0, sizeof(ModelData), true);
     fillSamplerBindGroupLayoutEntry  (modelEntries[1], 1);
     fillTextureBindGroupLayoutEntry  (modelEntries[2], 2);
     fillTextureBindGroupLayoutEntry  (modelEntries[3], 3);
     fillTextureBindGroupLayoutEntry  (modelEntries[4], 4);
+    fillTextureBindGroupLayoutEntry  (modelEntries[5], 5);
     
     WGPUBindGroupLayoutDescriptor groupLayoutFrame{};
     groupLayoutFrame.label = "grouplayout0 - per frame data";
@@ -353,7 +361,7 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     pipeline.layout = m_layout;
 }
 
-void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture)
+void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture)
 {
     for (WGPUBindGroup& group : m_bindGroups) if (group != nullptr)
         wgpuBindGroupRelease(group);
@@ -365,7 +373,7 @@ void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTex
     entry0.offset = 0;
     entry0.size = sizeof(FrameData);
 
-    std::array<WGPUBindGroupEntry, 5> bindings{};
+    std::array<WGPUBindGroupEntry, 6> bindings{};
     
     WGPUBindGroupEntry& entry1 = bindings[0];
     entry1.nextInChain = nullptr;
@@ -397,6 +405,13 @@ void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTex
         WGPUBindGroupEntry& entryNormalsTexture = bindings[4];
         entryNormalsTexture.binding = 4;
         entryNormalsTexture.textureView = normalsTexture->getTextureView();
+    }
+
+    if (emissiveTexture != nullptr)
+    {
+        WGPUBindGroupEntry& entryEmissiveTexture = bindings[5];
+        entryEmissiveTexture.binding = 5;
+        entryEmissiveTexture.textureView = emissiveTexture->getTextureView();
     }
 
     WGPUBindGroupDescriptor group0{};

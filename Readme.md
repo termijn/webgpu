@@ -10,12 +10,12 @@ Current status:
     * base color texture
     * normal map
     * ambient occlusion map
-    * diffuse shading
+    * emissive map
+    * basic diffuse shading
 
 - Todo
-    * PBR shading
-    * emissive map
     * shadow map
+    * PBR shading
     * generate mip map levels
     * reflection map
     * HDR
