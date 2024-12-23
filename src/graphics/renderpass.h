@@ -50,6 +50,6 @@ private:
 
     void createPipeline();
     void createLayout(WGPURenderPipelineDescriptor& pipeline);
-    void createBindings(Texture* texture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture);
+    void createBindings(Texture* texture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture);
     void drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables);
 };

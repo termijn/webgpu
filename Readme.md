@@ -13,10 +13,10 @@ Current status:
     * emissive map
     * basic diffuse shading
     * shadow map
+    * PBR shading
 
 - Todo
     * shadow map poisson sampling
-    * PBR shading
     * generate mip map levels
     * reflection map
     * HDR

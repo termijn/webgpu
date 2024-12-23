@@ -37,8 +37,11 @@ Texture::Texture(Gpu& gpu, Params params)
         case Format::RGBA:
             wgpuFormat = WGPUTextureFormat_RGBA8Unorm;
             break;
+        case Format::RGBAsrgb:
+            wgpuFormat = WGPUTextureFormat_RGBA8UnormSrgb;
+            break;
         case Format::BGRA:
-            wgpuFormat = WGPUTextureFormat_BGRA8Unorm;
+            wgpuFormat = WGPUTextureFormat_BGRA8UnormSrgb;
             break;
         case Format::R:
             wgpuFormat = WGPUTextureFormat_R8Unorm;

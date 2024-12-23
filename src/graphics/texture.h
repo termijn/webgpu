@@ -14,6 +14,7 @@ public:
     {
         Depth24Plus,
         Depth32,
+        RGBAsrgb,
         RGBA,
         BGRA,
         R,

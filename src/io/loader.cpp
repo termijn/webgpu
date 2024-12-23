@@ -405,7 +405,8 @@ void fillMaterial(const tinygltf::Model& model, int materialIndex, Material& mat
     }
 
     if (pbr.metallicRoughnessTexture.index >= 0)
-    {     
+    {
+        std::cout << "Loading metallic roughness" << std::endl;
         material.metallicRoughnessTransforms = getTextureTransforms(pbr.metallicRoughnessTexture);
         material.metallicRoughness = getImage(pbr.metallicRoughnessTexture, model);
     }

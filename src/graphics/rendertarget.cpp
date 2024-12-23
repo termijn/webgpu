@@ -14,7 +14,13 @@ WindowTarget::WindowTarget(Gpu& gpu)
     WGPUSurfaceCapabilities capabilities;
     capabilities.nextInChain = nullptr;
     wgpuSurfaceGetCapabilities(surface, gpu.m_adapter, &capabilities);
-    m_surfaceFormat = capabilities.formats[0];
+
+    for (int i = 0; i < capabilities.formatCount; i++)
+    {
+        std::cout << "Surface format supported: " << capabilities.formats[i] << std::endl;
+    }
+
+    m_surfaceFormat = WGPUTextureFormat::WGPUTextureFormat_BGRA8UnormSrgb;
 
     surfaceConfig.nextInChain      = nullptr;
     surfaceConfig.width            = 640;

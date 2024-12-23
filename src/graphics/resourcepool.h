@@ -19,7 +19,7 @@ public:
     ResourcePool(Gpu& gpu);
     ~ResourcePool();
 
-    Texture&        get(const Image* image);
+    Texture&        get(const Image* image, bool srgb = false);
     VertexBuffer&   get(const Renderable* renderable);
   //  CubemapTexture& get(const Cubemap* cubemap);
 

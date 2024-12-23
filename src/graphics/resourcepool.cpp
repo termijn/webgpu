@@ -15,14 +15,14 @@ ResourcePool::~ResourcePool()
     
 };
 
-Texture& ResourcePool::get(const Image* image)
+Texture& ResourcePool::get(const Image* image, bool srgb)
 {
     auto it = m_poolTextures.find(image->getPixels());
     if (it == m_poolTextures.end()) 
     {
         Texture::Params params
         {
-            .format = Texture::Format::RGBA,
+            .format = srgb ? Texture::Format::RGBAsrgb : Texture::Format::RGBA,
             .sampleCount = 1,
             .usage = Texture::Usage::CopySrcTextureBinding
         };
