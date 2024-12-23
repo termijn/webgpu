@@ -14,13 +14,14 @@
 class RenderPass
 {
 public:
-    RenderPass(Gpu& gpu, RenderTarget& renderTarget);
+    RenderPass(Gpu& gpu, RenderTarget& renderTarget, DepthTarget& shadowTarget);
     virtual ~RenderPass();
     
     struct RenderParams
     {
         glm::mat4 view;
         glm::mat4 projection;
+        glm::mat4 shadowViewProjection;
         glm::mat4 worldToLight;
         glm::vec4 lightPosWorld;
     };
@@ -31,6 +32,7 @@ public:
 private:
     Gpu&                m_gpu;
     RenderTarget&       m_renderTarget;
+    DepthTarget&        m_shadowTarget;
 
     FrameData              m_frameData;
     Uniforms<FrameData>    m_uniformsFrame;

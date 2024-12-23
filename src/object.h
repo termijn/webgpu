@@ -59,6 +59,15 @@ private:
 
 };
 
+class LightObject: public Object
+{
+public:
+    explicit LightObject(const Object& parent);
+
+    glm::mat4 getProjection()   const;
+    glm::mat4 getView()         const;
+};
+
 class CameraObject: public Object
 {
 public:

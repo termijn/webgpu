@@ -7,6 +7,8 @@ template <typename T>
 class Uniforms
 {
 friend class RenderPass;
+friend class ShadowPass;
+
 public:
     Uniforms(Gpu& gpu)
         : m_gpu(gpu)

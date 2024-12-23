@@ -4,7 +4,7 @@
 using namespace glm;
 
 WindowTarget::WindowTarget(Gpu& gpu)
-    : m_depthTexture(gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::Depth })
+    : m_depthTexture(gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::Depth24Plus })
     , m_msaaTexture (gpu, Texture::Params {.usage = Texture::Usage::RenderAttachment, .sampleCount = 4, .format = Texture::Format::BGRA  })
 {
     int windowFlags = SDL_WINDOW_RESIZABLE;
@@ -96,4 +96,49 @@ WGPUTextureView WindowTarget::getDepthTextureView()
 WGPUTextureView WindowTarget::getMsaaTextureView()
 {
     return m_msaaTexture.getTextureView();
+}
+
+DepthTarget::DepthTarget(Gpu& gpu)
+    : m_depthTexture(gpu, Texture::Params{ .format = Texture::Format::Depth32, .sampleCount = 1, .usage = Texture::Usage::RenderAndBinding })
+{
+}
+
+DepthTarget::~DepthTarget() = default;
+
+void DepthTarget::setSize(glm::vec2 size)
+{
+    m_size = size;
+    m_depthTexture.setSize(size);
+}
+
+void DepthTarget::beginRender()
+{
+    // Size is fixed
+}
+
+void DepthTarget::endRender()
+{
+    // Nothing to do.
+}
+
+glm::vec2 DepthTarget::getSize() const
+{
+    return m_size;
+}
+
+WGPUTextureView DepthTarget::getNextTextureView()
+{
+    assert(false); // Only depth texture is supported.
+    return nullptr;
+}
+
+WGPUTextureView DepthTarget::getDepthTextureView()
+{
+    return m_depthTexture.getTextureView();
+}
+
+WGPUTextureView DepthTarget::getMsaaTextureView()
+{
+    assert(false); // Only depth texture is supported.
+    return nullptr;
 }

@@ -146,3 +146,18 @@ const Space CameraObject::getProjectionSpace(float aspectRatio) const
 
     return projectionSpace;
 }
+
+LightObject::LightObject(const Object& parent)
+    : Object(parent)
+{
+}
+
+glm::mat4 LightObject::getProjection() const
+{
+    return perspective<float>(radians(100.0f),1.0f , 1.0f, 1500.0f);
+}
+
+glm::mat4 LightObject::getView() const
+{
+    return getSpace().fromRoot;
+}

@@ -1,11 +1,13 @@
 #include "renderpass.h"
 #include <iostream>
+#include "renderpasshelpers.h"
 
 using namespace glm;
 
-RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget)
+RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget, DepthTarget& shadowTarget)
     : m_gpu           (gpu)
     , m_renderTarget  (renderTarget)
+    , m_shadowTarget  (shadowTarget)
     , m_uniformsFrame (gpu)
     , m_uniformsModel (gpu)
 {
@@ -30,10 +32,7 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
     m_uniformsFrame.setSize(1);
     m_uniformsFrame.writeChanges(0, m_frameData);
 
-    bool nrRenderablesChanged = m_uniformsModel.setSize(renderables.size());
-
-    // if (nrRenderablesChanged)
-    //     createBindings();
+    m_uniformsModel.setSize(renderables.size());
 
     int index = 0;
     for (const Renderable* renderable : renderables)
@@ -73,7 +72,7 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
             const Image& image = renderable->material.emissive.value();
             emissiveTexture = &m_gpu.getResourcePool().get(&image);
         }
-
+        // TODO: only rebind model group
         createBindings(baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture); 
 
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
@@ -96,11 +95,12 @@ void RenderPass::renderPre(const RenderParams& params)
     m_frameData.projection          = params.projection;
     m_frameData.viewPositionWorld   = inverse(params.view)[3];
     m_frameData.lightPositionWorld  = params.lightPosWorld;
+    m_frameData.shadowViewProjection = params.shadowViewProjection;
 }
 
 void RenderPass::render(const std::vector<const Renderable*>& renderables)
 {
-    WGPUCommandEncoder encoder = m_gpu.createCommandEncoder();
+    WGPUCommandEncoder& encoder = m_gpu.m_currentCommandEncoder;
 
     WGPUTextureView targetView = m_renderTarget.getNextTextureView();
 
@@ -152,64 +152,6 @@ void RenderPass::render(const std::vector<const Renderable*>& renderables)
 
     wgpuRenderPassEncoderEnd(renderPass);
     wgpuRenderPassEncoderRelease(renderPass);
-
-    WGPUCommandBufferDescriptor cmdBufferDescriptor{};
-    cmdBufferDescriptor.nextInChain = nullptr;
-    cmdBufferDescriptor.label       = "Command buffer";
-    WGPUCommandBuffer command       = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
-
-    wgpuCommandEncoderRelease(encoder);
-
-    wgpuQueueSubmit(m_gpu.m_queue, 1, &command);
-    wgpuCommandBufferRelease(command);
-
-#if defined(WEBGPU_BACKEND_DAWN)
-    wgpuDeviceTick(m_gpu.m_device);
-#elif defined(WEBGPU_BACKEND_WGPU)
-    wgpuDevicePoll(device, false, nullptr);
-#endif
-}
-
-void setDefault(WGPUBindGroupLayoutEntry &bindingLayout) 
-{
-    bindingLayout.buffer.nextInChain = nullptr;
-    bindingLayout.buffer.type = WGPUBufferBindingType_Undefined;
-    bindingLayout.buffer.hasDynamicOffset = false;
-
-    bindingLayout.sampler.nextInChain = nullptr;
-    bindingLayout.sampler.type = WGPUSamplerBindingType_Undefined;
-
-    bindingLayout.storageTexture.nextInChain = nullptr;
-    bindingLayout.storageTexture.access = WGPUStorageTextureAccess_Undefined;
-    bindingLayout.storageTexture.format = WGPUTextureFormat_Undefined;
-    bindingLayout.storageTexture.viewDimension = WGPUTextureViewDimension_Undefined;
-
-    bindingLayout.texture.nextInChain = nullptr;
-    bindingLayout.texture.multisampled = false;
-    bindingLayout.texture.sampleType = WGPUTextureSampleType_Undefined;
-    bindingLayout.texture.viewDimension = WGPUTextureViewDimension_Undefined;
-}
-
-void setDefault(WGPUStencilFaceState &stencilFaceState)
-{
-    stencilFaceState.compare = WGPUCompareFunction_Always;
-    stencilFaceState.failOp = WGPUStencilOperation_Keep;
-    stencilFaceState.depthFailOp = WGPUStencilOperation_Keep;
-    stencilFaceState.passOp = WGPUStencilOperation_Keep;
-
-}
-void setDefault(WGPUDepthStencilState &depthStencilState)
-{
-    depthStencilState.format = WGPUTextureFormat_Undefined;
-    depthStencilState.depthWriteEnabled = false;
-    depthStencilState.depthCompare = WGPUCompareFunction_Always;
-    depthStencilState.stencilReadMask = 0xFFFFFFFF;
-    depthStencilState.stencilWriteMask = 0xFFFFFFFF;
-    depthStencilState.depthBias = 0;
-    depthStencilState.depthBiasSlopeScale = 0;
-    depthStencilState.depthBiasClamp = 0;
-    setDefault(depthStencilState.stencilFront);
-    setDefault(depthStencilState.stencilBack);
 }
 
 void RenderPass::createPipeline()
@@ -297,39 +239,13 @@ void RenderPass::createPipeline()
     wgpuShaderModuleRelease(shaderModule);
 }
 
-void fillTextureBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding)
-{
-    setDefault(entry);
-    entry.binding               = binding;
-    entry.visibility            = WGPUShaderStage_Fragment;
-    entry.texture.sampleType    = WGPUTextureSampleType_Float;
-    entry.texture.viewDimension = WGPUTextureViewDimension_2D;
-    entry.texture.multisampled  = false;
-}
-
-void fillSamplerBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding)
-{
-    setDefault(entry);
-    entry.binding = binding;
-    entry.visibility = WGPUShaderStage_Fragment;
-    entry.sampler.type = WGPUSamplerBindingType_Filtering;
-}
-
-void fillUniformsBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding, int size, bool dynamicOffset)
-{
-    setDefault(entry);
-    entry.binding = 0;
-    entry.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
-    entry.buffer.type = WGPUBufferBindingType_Uniform;
-    entry.buffer.minBindingSize = size;
-    entry.buffer.hasDynamicOffset = dynamicOffset;
-}
-
 void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 {
-    WGPUBindGroupLayoutEntry entryFrameUniforms{};
-    fillUniformsBindGroupLayoutEntry(entryFrameUniforms, 0, sizeof(FrameData), false);
-    
+    std::array<WGPUBindGroupLayoutEntry, 3> frameEntries{};
+    fillUniformsBindGroupLayoutEntry            (frameEntries[0], 0, sizeof(FrameData), false);
+    fillDepthTextureBindGroupLayoutEntry        (frameEntries[1], 1);
+    fillSamplerComparisonBindGroupLayoutEntry   (frameEntries[2], 2);
+
     std::array<WGPUBindGroupLayoutEntry, 6> modelEntries{};
     fillUniformsBindGroupLayoutEntry (modelEntries[0], 0, sizeof(ModelData), true);
     fillSamplerBindGroupLayoutEntry  (modelEntries[1], 1);
@@ -341,8 +257,8 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     WGPUBindGroupLayoutDescriptor groupLayoutFrame{};
     groupLayoutFrame.label = "grouplayout0 - per frame data";
     groupLayoutFrame.nextInChain = nullptr;
-    groupLayoutFrame.entryCount = 1;
-    groupLayoutFrame.entries = &entryFrameUniforms;
+    groupLayoutFrame.entryCount = frameEntries.size();
+    groupLayoutFrame.entries = frameEntries.data();
     m_bindGroupLayouts[0] = wgpuDeviceCreateBindGroupLayout(m_gpu.m_device, &groupLayoutFrame);
 
     WGPUBindGroupLayoutDescriptor groupLayoutModel{};
@@ -366,12 +282,21 @@ void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTex
     for (WGPUBindGroup& group : m_bindGroups) if (group != nullptr)
         wgpuBindGroupRelease(group);
 
-    WGPUBindGroupEntry entry0{};
+    std::array<WGPUBindGroupEntry, 3> frameBindings{};
+    WGPUBindGroupEntry& entry0 = frameBindings[0];
     entry0.nextInChain = nullptr;
     entry0.binding = 0; 
     entry0.buffer = m_uniformsFrame.m_buffer;
     entry0.offset = 0;
     entry0.size = sizeof(FrameData);
+
+    WGPUBindGroupEntry& entryShadowTexture = frameBindings[1];
+    entryShadowTexture.binding = 1;
+    entryShadowTexture.textureView = m_shadowTarget.getDepthTextureView();
+
+    WGPUBindGroupEntry& entryDepthSampler = frameBindings[2];
+    entryDepthSampler.binding = 2;
+    entryDepthSampler.sampler = m_gpu.m_depthSampler;
 
     std::array<WGPUBindGroupEntry, 6> bindings{};
     
@@ -417,8 +342,8 @@ void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTex
     WGPUBindGroupDescriptor group0{};
     group0.nextInChain   = nullptr;
     group0.layout        = m_bindGroupLayouts[0];
-    group0.entryCount    = 1;
-    group0.entries       = &entry0;
+    group0.entryCount    = frameBindings.size();
+    group0.entries       = frameBindings.data();
 
     WGPUBindGroupDescriptor group1{};
     group1.nextInChain   = nullptr;

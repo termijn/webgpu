@@ -12,7 +12,8 @@ public:
 
     enum class Format
     {
-        Depth,
+        Depth24Plus,
+        Depth32,
         RGBA,
         BGRA,
         R,
@@ -23,7 +24,8 @@ public:
     {
         RenderAttachment,
         TextureBinding,
-        CopySrcTextureBinding
+        CopySrcTextureBinding,
+        RenderAndBinding
     };
 
     struct Params
@@ -44,7 +46,7 @@ public:
 private:
     Gpu&                    m_gpu;
     Params                  m_params;
-    WGPUTextureDescriptor   m_textureDesc;
+    WGPUTextureDescriptor   m_textureDesc   = {};
     WGPUTexture             m_texture       = nullptr;
     WGPUTextureView         m_textureView   = nullptr;
 

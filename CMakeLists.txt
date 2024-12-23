@@ -33,16 +33,23 @@ if (EMSCRIPTEN)
     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES SUFFIX ".html")
     target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -sASYNCIFY)
 else()
-    set(SHADER_SOURCE "${CMAKE_SOURCE_DIR}/shaders/colorpass.wgsl")
+    set(SHADER_SOURCECOLOR  "${CMAKE_SOURCE_DIR}/shaders/colorpass.wgsl")
+    set(SHADER_SOURCESHADOW "${CMAKE_SOURCE_DIR}/shaders/shadowpass.wgsl")
+
     add_custom_command(
         TARGET ${CMAKE_PROJECT_NAME}
         POST_BUILD
         COMMAND
           ${CMAKE_COMMAND} -E copy_if_different
-          ${SHADER_SOURCE}
+          ${SHADER_SOURCECOLOR}
           $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/shaders/colorpass.wgsl
-        COMMAND ${CMAKE_COMMAND} -E echo "Copying shader file: ${SHADER_SOURCE}"
-      )
+        COMMAND
+          ${CMAKE_COMMAND} -E copy_if_different
+          ${SHADER_SOURCESHADOW}
+          $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/shaders/shadowpass.wgsl
+        COMMAND
+          ${CMAKE_COMMAND} -E echo "Copying shader files: ${SHADER_SOURCECOLOR}, ${SHADER_SOURCESHADOW}"
+    )    
 
     set(MODEL_SOURCE "${CMAKE_SOURCE_DIR}/models/DamagedHelmet.glb")
     add_custom_command(
@@ -50,7 +57,14 @@ else()
         POST_BUILD
         COMMAND
           ${CMAKE_COMMAND} -E copy_if_different
-          ${SHADER_SOURCE}
+          ${MODEL_SOURCE}
           $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/models/DamagedHelmet.glb
       )
+
+    file(GLOB_RECURSE SHADER_REFERENCES  ${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.wgsl)
+    file(GLOB_RECURSE MODEL_REFERENCES   ${CMAKE_CURRENT_SOURCE_DIR}/models/*.glb)
+
+    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY LINK_DEPENDS 
+          ${SHADER_REFERENCES}
+          ${MODEL_REFERENCES})
 endif()

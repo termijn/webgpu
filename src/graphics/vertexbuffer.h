@@ -9,6 +9,7 @@ class Gpu;
 class VertexBuffer
 {
 friend class RenderPass;
+friend class ShadowPass;
 
 public:
     VertexBuffer(Gpu& gpu);

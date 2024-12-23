@@ -46,36 +46,29 @@ int main (int, char**)
     Object          root;
     Object          sceneParent(root);
     CameraObject    camera  = CameraObject(root);
-    Object          light   = Object(camera);
+    LightObject     light   = LightObject(camera);
 
-    Animator animator(scheduler, [&](double t)
-    {
-        camera.lookAt(vec3(0, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
-        mat4 rotation = rotate(mat4(1.0), radians(float(t * 200.0f)), vec3(0.0f, 1.0f, 0.0f)) * camera.getTransform();
-             rotation = rotate(mat4(1.0), radians(float(t * 140.0f)), vec3(1.0f, 0.0f, 0.0f)) * rotation;
-        camera.setTransform(rotation);
-    });
-    //animator.start();
-
-    camera.setPerspective(radians(45.0f), 0.1f, 1000.0f);
-    light.lookAt(vec3(0.5, 0.6, 0.0), vec3(0, 0, 1.0), vec3(0, 1, 0));
-
-    viewport.attachCamera(camera);
-    viewport.attachLight(light);
-
+    sceneParent  .setTransform(scale(mat4(1.0), vec3(5.0)));
+    
     std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", sceneParent);
-
-    for (auto& renderable : scene->all())
-    {
-        viewport.attachRenderable(renderable->getRenderable());
-    }
 
     Box box = scene->getBox();
     vec3 sceneCenter = Space::pos(box.center(), Space(), camera.getParentSpace());
     float diameter   = Space::dir(box.max - box.min, Space(), camera.getParentSpace()).length();
 
+    vec3 centerInCameraSpace = Space::pos(box.center(), Space(), camera.getSpace());
+
+    camera.setPerspective(radians(45.0f), 0.1f, 1000.0f);
+    light.lookAt(vec3(1.0, 0.6, 0), vec3(0, 0, 1), vec3(0, 1, 0));
+
+    viewport.attachCamera(camera);
+    viewport.attachLight(light);
+
+    for (auto& renderable : scene->all())
+        viewport.attachRenderable(renderable->getRenderable());
+
     camera.lookAt(sceneCenter + vec3(0, 0, diameter * 5), sceneCenter, vec3(0, 1, 0));
-    
+
     RollInput   cameraInput     = RollInput(viewport, camera);
 
     scheduler.run();

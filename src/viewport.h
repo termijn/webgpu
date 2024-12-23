@@ -2,10 +2,13 @@
 
 #include "graphics/rendertarget.h"
 #include "graphics/renderpass.h"
+#include "graphics/shadowpass.h"
 #include "scheduler.h"
 #include "renderable.h"
 #include "input.h"
 
+// The viewport renders to a render target (either a window or a canvas).
+// It handles mouse events and connects the graphics layer. 
 class Viewport
 {
 friend class Scheduler;
@@ -17,7 +20,7 @@ public:
 
     void attachCamera       (const CameraObject& camera);
     void attachRenderable   (const Renderable&   renderable);
-    void attachLight        (const Object&       light);
+    void attachLight        (const LightObject&  light);
 
     void render();
 
@@ -28,18 +31,21 @@ protected:
     void mouseWheel (int direction);
 
 private:
-    Scheduler&      scheduler;
-    RenderTarget&   renderTarget;
+    Scheduler&      m_scheduler;
+    Gpu& m_gpu;
+    RenderTarget&   m_renderTarget;
     
-    const CameraObject*     camera  = nullptr;
-    const Object*           light   = nullptr;
+    const CameraObject*     m_camera  = nullptr;
+    const LightObject*      m_light   = nullptr;
     
-    std::vector<const Renderable*>  renderables;
+    std::vector<const Renderable*>  m_renderables;
     std::vector<Input*>             m_inputs;
     Input*                          m_activeInput = nullptr;
     MouseButton                     m_pressedButtons      = MouseButton::None;
 
-    RenderPass      renderPass;
+    DepthTarget m_depthTarget;
+    ShadowPass  m_shadowPass;
+    RenderPass  m_renderPass;
 
     Viewport (const Viewport&)              = delete;
     Viewport& operator= (const Viewport&)   = delete;

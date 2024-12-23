@@ -21,12 +21,18 @@ Texture::Texture(Gpu& gpu, Params params)
         case Usage::TextureBinding:
             wgpuUsage = WGPUTextureUsage_TextureBinding;
             break;
+        case Usage::RenderAndBinding:
+            wgpuUsage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_TextureBinding;
+            break;
     }
 
     switch (params.format)
     {
-        case Format::Depth:
+        case Format::Depth24Plus:
             wgpuFormat = WGPUTextureFormat_Depth24Plus;
+            break;
+        case Format::Depth32:
+            wgpuFormat = WGPUTextureFormat_Depth32Float;
             break;
         case Format::RGBA:
             wgpuFormat = WGPUTextureFormat_RGBA8Unorm;
@@ -41,7 +47,6 @@ Texture::Texture(Gpu& gpu, Params params)
             wgpuFormat = WGPUTextureFormat_RG8Unorm;
             break;
     }
-    m_textureDesc.nextInChain   = nullptr;
     m_textureDesc.dimension     = WGPUTextureDimension_2D;
     m_textureDesc.format        = wgpuFormat;
     m_textureDesc.mipLevelCount = 1;
@@ -81,9 +86,8 @@ void Texture::setSize(vec2 size)
         m_textureDesc.size = WGPUExtent3D { .width = newSize.x, .height = newSize.y, .depthOrArrayLayers = 1 };
         m_texture = wgpuDeviceCreateTexture(m_gpu.m_device, &m_textureDesc);
 
-        WGPUTextureViewDescriptor textureViewDesc;
-        textureViewDesc.nextInChain = nullptr;
-        textureViewDesc.aspect = (m_params.format == Format::Depth) ? WGPUTextureAspect_DepthOnly : WGPUTextureAspect_All;
+        WGPUTextureViewDescriptor textureViewDesc {};
+        textureViewDesc.aspect = (m_params.format == Format::Depth24Plus || m_params.format == Format::Depth32) ? WGPUTextureAspect_DepthOnly : WGPUTextureAspect_All;
         textureViewDesc.baseArrayLayer = 0;
         textureViewDesc.arrayLayerCount = 1;
         textureViewDesc.baseMipLevel = 0;

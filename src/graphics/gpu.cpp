@@ -27,6 +27,7 @@ Gpu::Gpu()
     m_queue = createQueue(m_device);
 
     m_linearSampler = createLinearSampler(m_device);
+    m_depthSampler  = createDepthSampler(m_device);
 }
 
 Gpu::~Gpu()
@@ -75,6 +76,29 @@ uint32_t Gpu::uniformStride(uint32_t uniformSize) const
     return uniformStride;
 }
 
+void Gpu::beginRenderJob()
+{
+    m_currentCommandEncoder = createCommandEncoder();
+}
+
+void Gpu::submitRenderJob()
+{
+    WGPUCommandBufferDescriptor cmdBufferDescriptor{};
+    cmdBufferDescriptor.nextInChain = nullptr;
+    cmdBufferDescriptor.label       = "Command buffer";
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(m_currentCommandEncoder, &cmdBufferDescriptor);
+    wgpuCommandEncoderRelease(m_currentCommandEncoder);
+    wgpuQueueSubmit(m_queue, 1, &command);
+    wgpuCommandBufferRelease(command);
+
+    #if defined(WEBGPU_BACKEND_DAWN)
+        wgpuDeviceTick(m_device);
+    #elif defined(WEBGPU_BACKEND_WGPU)
+        wgpuDevicePoll(device, false, nullptr);
+    #endif
+    m_currentCommandEncoder = nullptr;
+}
+
 WGPUInstance Gpu::getInstance()
 {
     return m_instance;
@@ -103,6 +127,16 @@ WGPUSampler Gpu::createLinearSampler(WGPUDevice device)
     samplerDesc.maxAnisotropy = 4;
     WGPUSampler linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
     return linearSampler;
+}
+
+WGPUSampler Gpu::createDepthSampler(WGPUDevice device)
+{
+    WGPUSamplerDescriptor samplerDesc{};
+    samplerDesc.label = "depth comparison sampler";
+    samplerDesc.compare = WGPUCompareFunction_Less;
+    samplerDesc.maxAnisotropy = 1;
+    WGPUSampler sampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
+    return sampler;
 }
 
 void Gpu::enumerateDeviceFeatures(WGPUDevice device)
