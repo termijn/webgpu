@@ -32,6 +32,15 @@ struct Model
     modelInverseTranspose:  mat4x4f
 }
 
+struct RimLight
+{
+    color:      vec3f,
+    width:      f32,
+    strength:   f32
+}
+
+const rimLight = RimLight(vec3f(1.0), 2.0, 0.1);
+
 const Fdielectric = vec3f(0.04f);
 const PI = 3.1415926535897932384f;
 
@@ -219,7 +228,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
         var specularBRDF: vec3f   = F * D * G / (4.0 * cosLi * cosLo + 0.001);
         specularBRDF        = mix(specularBRDF, vec3(0.0), finalRoughness);
 
-        //let fresnel: f32         = 1.0 - max(dot(N, Lo), 0.0);
         // envReflection   = vec3(0.0);
         // if (reflectionMap.hasReflectionMap)
         // {
@@ -234,11 +242,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
         // {
             directLighting += (diffuseBRDF +  specularBRDF) * lightColor * cosLi;
         //}
-
-        // float rimFactor = pow(fresnel, rimWidth);
-        // vec3   rimLight = rimColor * rimFactor * rimStrength;
-        // directLighting += rimLight;
     }
+
+    let fresnel: f32         = 1.0 - max(dot(N, Lo), 0.0);
+    let rimFactor: f32 = pow(fresnel, rimLight.width);
+    let rimLight: vec3f = rimLight.color * rimFactor * rimLight.strength;
+    directLighting += rimLight;
 
     finalColor =  directLighting;
 
@@ -247,8 +256,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
     finalColor   = finalColor * (0.2 + (0.8 * shadow));
     finalColor  += textureSample(emissiveTexture, linearSampler, in.uv).rgb;
 
-    let exposureStops = 1.8;
+    let exposureStops = 1.4;
     let exposureFactor = pow(2.0, exposureStops);
 
-    return vec4f(reinhard_extended(finalColor * exposureFactor, 1.5), 1.0);
+    return vec4f(aces_approx(finalColor * exposureFactor), 1.0);
 }
