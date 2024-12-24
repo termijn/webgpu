@@ -53,7 +53,6 @@ private:
 
     void writeMipMaps(
         WGPUExtent3D    textureSize,
-        [[maybe_unused]] uint32_t mipLevelCount, // not used yet
         int bytesPerPixel,
         const unsigned char* pixelData);
 

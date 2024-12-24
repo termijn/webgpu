@@ -32,7 +32,7 @@ struct Model
     modelInverseTranspose:  mat4x4f
 }
 
-const Fdielectric = vec3f(0.4f);
+const Fdielectric = vec3f(0.04f);
 const PI = 3.1415926535897932384f;
 
 @group(0) @binding(0)
@@ -175,6 +175,11 @@ fn aces_approx(vo: vec3f) -> vec3f
     return clamp((v*(a*v+b)) / (v*(c*v+d)+e), vec3f(0.0), vec3f(1.0));
 }
 
+fn reinhard_extended(v: vec3f, max_white: f32) -> vec3f
+{
+    let numerator: vec3f = v * (1.0f + (v / vec3(max_white * max_white)));
+    return numerator / (1.0f + v);
+}
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f 
@@ -242,8 +247,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
     finalColor   = finalColor * (0.2 + (0.8 * shadow));
     finalColor  += textureSample(emissiveTexture, linearSampler, in.uv).rgb;
 
-    let exposureStops = 2.5;
+    let exposureStops = 1.8;
     let exposureFactor = pow(2.0, exposureStops);
 
-    return vec4f(aces_approx(finalColor * exposureFactor), 1.0);
+    return vec4f(reinhard_extended(finalColor * exposureFactor, 1.5), 1.0);
 }

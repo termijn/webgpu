@@ -44,11 +44,11 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         };
         m_uniformsModel.writeChanges(index, data);
 
-        Texture* baseColorTexture;
-        Texture* occlusionTexture;
-        Texture* normalsTexture;
-        Texture* emissiveTexture;
-        Texture* metallicRoughnessTexture;
+        Texture* baseColorTexture = nullptr;
+        Texture* occlusionTexture= nullptr;
+        Texture* normalsTexture= nullptr;
+        Texture* emissiveTexture= nullptr;
+        Texture* metallicRoughnessTexture= nullptr;
 
         if (renderable->material.baseColorTexture.has_value())
         {
@@ -228,7 +228,7 @@ void RenderPass::createPipeline()
     blendState.alpha.operation = WGPUBlendOperation_Add;
 
     WGPUColorTargetState colorTarget{};
-colorTarget.format      = m_renderTarget.m_surfaceFormat;
+    colorTarget.format      = m_renderTarget.m_surfaceFormat;
     colorTarget.blend       = &blendState;
     colorTarget.writeMask   = WGPUColorWriteMask_All;
 

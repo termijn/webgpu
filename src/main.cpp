@@ -24,7 +24,7 @@
 
 using namespace glm;
 
-int main (int, char**) 
+int main (int, char**)
 {
     #ifdef GLM_FORCE_LEFT_HANDED
         std::cout << "GLM left handed" << std::endl;
@@ -41,7 +41,8 @@ int main (int, char**)
     Gpu             gpu;
     Scheduler       scheduler;
     WindowTarget    windowTarget(gpu);
-    Viewport        viewport(scheduler, gpu, windowTarget);
+
+    std::unique_ptr<Viewport>        viewport = std::make_unique<Viewport>(scheduler, gpu, windowTarget);
 
     Object          root;
     Object          sceneParent(root);
@@ -51,7 +52,6 @@ int main (int, char**)
     sceneParent  .setTransform(scale(mat4(1.0), vec3(5.0)));
     
     std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", sceneParent);
-
     Box box = scene->getBox();
     vec3 sceneCenter = Space::pos(box.center(), Space(), camera.getParentSpace());
     float diameter   = Space::dir(box.max - box.min, Space(), camera.getParentSpace()).length();
@@ -61,15 +61,15 @@ int main (int, char**)
     camera.setPerspective(radians(45.0f), 0.1f, 1000.0f);
     light.lookAt(vec3(1.0, 0.6, 0), vec3(0, 0, 1), vec3(0, 1, 0));
 
-    viewport.attachCamera(camera);
-    viewport.attachLight(light);
+    viewport->attachCamera(camera);
+    viewport->attachLight(light);
 
     for (auto& renderable : scene->all())
-        viewport.attachRenderable(renderable->getRenderable());
+        viewport->attachRenderable(renderable->getRenderable());
 
     camera.lookAt(sceneCenter + vec3(0, 0, diameter * 5), sceneCenter, vec3(0, 1, 0));
 
-    RollInput   cameraInput     = RollInput(viewport, camera);
+    RollInput   cameraInput     = RollInput(*viewport, camera);
 
     scheduler.run();
 

@@ -124,7 +124,7 @@ WGPUSampler Gpu::createLinearSampler(WGPUDevice device)
     samplerDesc.lodMinClamp = 0.0f;
     samplerDesc.lodMaxClamp = 1.0f;
     samplerDesc.compare = WGPUCompareFunction_Undefined;
-    samplerDesc.maxAnisotropy = 4;
+    samplerDesc.maxAnisotropy = 8;
     WGPUSampler linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
     return linearSampler;
 }
