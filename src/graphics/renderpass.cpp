@@ -8,17 +8,22 @@ RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget, DepthTarget& shadow
     : m_gpu           (gpu)
     , m_renderTarget  (renderTarget)
     , m_shadowTarget  (shadowTarget)
+    , m_optionalTexture(gpu, Texture::Params{ .format = Texture::Format::RGBA, .usage = Texture::Usage::CopySrcTextureBinding })
     , m_uniformsFrame (gpu)
     , m_uniformsModel (gpu)
 {
     createPipeline();
+
+    Image emptyImage(std::vector<unsigned char>(4 * 256 * 256));
+    emptyImage.width = 256;
+    emptyImage.height = 256;
+    emptyImage.bytesPerPixel = 4;
+    emptyImage.type = Image::Type::RGBA;
+    m_optionalTexture.setImage(emptyImage);
 }
 
 RenderPass::~RenderPass()
 {
-    for (WGPUBindGroup& group : m_bindGroups)
-        wgpuBindGroupRelease(group);
-
     wgpuPipelineLayoutRelease(m_layout);
 
     for (WGPUBindGroupLayout& layout : m_bindGroupLayouts)
@@ -44,11 +49,11 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         };
         m_uniformsModel.writeChanges(index, data);
 
-        Texture* baseColorTexture = nullptr;
-        Texture* occlusionTexture= nullptr;
-        Texture* normalsTexture= nullptr;
-        Texture* emissiveTexture= nullptr;
-        Texture* metallicRoughnessTexture= nullptr;
+        Texture* baseColorTexture           = nullptr;
+        Texture* occlusionTexture           = nullptr;
+        Texture* normalsTexture             = nullptr;
+        Texture* emissiveTexture            = nullptr;
+        Texture* metallicRoughnessTexture   = nullptr;
 
         if (renderable->material.baseColorTexture.has_value())
         {
@@ -80,20 +85,22 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
             metallicRoughnessTexture = &m_gpu.getResourcePool().get(&image);
         }
 
-        // TODO: only rebind model group
-        createBindings(baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture, metallicRoughnessTexture); 
+        auto bindGroups = createBindings(renderable, baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture, metallicRoughnessTexture); 
 
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
         VertexBuffer& vertexBuffer = m_gpu.getResourcePool().get(renderable);
 
-        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, m_bindGroups[0], 0, nullptr);
-        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, m_bindGroups[1], 1, &dataOffset);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroups[0], 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, bindGroups[1], 1, &dataOffset);
 
         wgpuRenderPassEncoderSetIndexBuffer (renderPass, vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(vertexBuffer.m_indexBuffer));
         wgpuRenderPassEncoderSetVertexBuffer(renderPass,  0, vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(vertexBuffer.m_vertexBuffer));
         wgpuRenderPassEncoderDrawIndexed    (renderPass, vertexBuffer.m_mesh->indices().size() * 3, 1, 0, 0, 0);
         index++;
+
+        for (auto& group : bindGroups)
+            wgpuBindGroupRelease(group);
     }
 }
 
@@ -286,11 +293,8 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     pipeline.layout = m_layout;
 }
 
-void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture)
+std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* renderable, Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture)
 {
-    for (WGPUBindGroup& group : m_bindGroups) if (group != nullptr)
-        wgpuBindGroupRelease(group);
-
     std::array<WGPUBindGroupEntry, 3> frameBindings{};
     WGPUBindGroupEntry& entry0 = frameBindings[0];
     entry0.nextInChain = nullptr;
@@ -320,40 +324,25 @@ void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTex
     entrySampler.binding = 1;
     entrySampler.sampler = m_gpu.m_linearSampler;
 
-    if (baseColorTexture != nullptr)
-    {
-        WGPUBindGroupEntry& entryBaseColorTexture = bindings[2];
-        entryBaseColorTexture.binding = 2;
-        entryBaseColorTexture.textureView = baseColorTexture->getTextureView();
-    }
+    WGPUBindGroupEntry& entryBaseColorTexture = bindings[2];
+    entryBaseColorTexture.binding = 2;
+    entryBaseColorTexture.textureView = baseColorTexture != nullptr ? baseColorTexture->getTextureView() : m_optionalTexture.getTextureView();
 
-    if (occlusionTexture != nullptr)
-    {
-        WGPUBindGroupEntry& entryOcclusionTexture = bindings[3];
-        entryOcclusionTexture.binding = 3;
-        entryOcclusionTexture.textureView = occlusionTexture->getTextureView();
-    }
+    WGPUBindGroupEntry& entryOcclusionTexture = bindings[3];
+    entryOcclusionTexture.binding = 3;
+    entryOcclusionTexture.textureView = occlusionTexture != nullptr ? occlusionTexture->getTextureView() : m_optionalTexture.getTextureView();
 
-    if (normalsTexture != nullptr)
-    {
-        WGPUBindGroupEntry& entryNormalsTexture = bindings[4];
-        entryNormalsTexture.binding = 4;
-        entryNormalsTexture.textureView = normalsTexture->getTextureView();
-    }
+    WGPUBindGroupEntry& entryNormalsTexture = bindings[4];
+    entryNormalsTexture.binding = 4;
+    entryNormalsTexture.textureView = normalsTexture != nullptr ? normalsTexture->getTextureView() : m_optionalTexture.getTextureView();
 
-    if (emissiveTexture != nullptr)
-    {
-        WGPUBindGroupEntry& entryEmissiveTexture = bindings[5];
-        entryEmissiveTexture.binding = 5;
-        entryEmissiveTexture.textureView = emissiveTexture->getTextureView();
-    }
+    WGPUBindGroupEntry& entryEmissiveTexture = bindings[5];
+    entryEmissiveTexture.binding = 5;
+    entryEmissiveTexture.textureView = emissiveTexture != nullptr ? emissiveTexture->getTextureView(): m_optionalTexture.getTextureView();
 
-    if (metallicRoughnessTexture != nullptr)
-    {
-        WGPUBindGroupEntry& entryTexture = bindings[6];
-        entryTexture.binding = 6;
-        entryTexture.textureView = metallicRoughnessTexture->getTextureView();
-    }
+    WGPUBindGroupEntry& entryTexture = bindings[6];
+    entryTexture.binding = 6;
+    entryTexture.textureView = metallicRoughnessTexture != nullptr ? metallicRoughnessTexture->getTextureView() : m_optionalTexture.getTextureView();
 
     WGPUBindGroupDescriptor group0{};
     group0.nextInChain   = nullptr;
@@ -367,6 +356,5 @@ void RenderPass::createBindings(Texture* baseColorTexture, Texture* occlusionTex
     group1.entryCount    = bindings.size();
     group1.entries       = bindings.data();
 
-    m_bindGroups[0] = wgpuDeviceCreateBindGroup(m_gpu.m_device, &group0);
-    m_bindGroups[1] = wgpuDeviceCreateBindGroup(m_gpu.m_device, &group1);
+    return std::array<WGPUBindGroup, 2>{wgpuDeviceCreateBindGroup(m_gpu.m_device, &group0), wgpuDeviceCreateBindGroup(m_gpu.m_device, &group1)};
 }

@@ -34,6 +34,8 @@ private:
     RenderTarget&       m_renderTarget;
     DepthTarget&        m_shadowTarget;
 
+    Texture m_optionalTexture;
+
     FrameData              m_frameData;
     Uniforms<FrameData>    m_uniformsFrame;
 
@@ -46,10 +48,8 @@ private:
     WGPUDepthStencilState   m_depthStencilState {};
     WGPURenderPipeline      m_pipeline {};
 
-    std::array<WGPUBindGroup, 2> m_bindGroups { nullptr, nullptr };
-
     void createPipeline();
     void createLayout(WGPURenderPipelineDescriptor& pipeline);
-    void createBindings(Texture* texture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture);
+    std::array<WGPUBindGroup, 2> createBindings(const Renderable* renderable, Texture* texture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture);
     void drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables);
 };
