@@ -29,7 +29,13 @@ struct Frame
 struct Model
 {
     model:                  mat4x4f,
-    modelInverseTranspose:  mat4x4f
+    modelInverseTranspose:  mat4x4f,
+    baseColorFactor:        vec4f,
+    hasBaseColorTexture:    u32,
+    hasOcclusionTexture:    u32,
+    hasNormalTexture:       u32,
+    hasEmissiveTexture:     u32,
+    hasMetallicRoughnessTexture: u32
 }
 
 struct RimLight
@@ -93,7 +99,7 @@ fn vs_main(in: VertexInput) -> VertexOutput
 fn occlusion(color: vec3f, uv: vec2f, strength: f32) -> vec3f
 {
     let occlusionValue   = textureSample(occlusionTexture, linearSampler, uv).r;
-    let occlusionStrength = 1.0;
+    var occlusionStrength = 1.0;
     let occludedColor = mix(color, color * occlusionValue, occlusionStrength);
     return occludedColor;
 }
@@ -101,10 +107,12 @@ fn occlusion(color: vec3f, uv: vec2f, strength: f32) -> vec3f
 fn normal(surfaceNormal: vec3f, uv: vec2f, tangent: vec3f, bitangent: vec3f) -> vec3f
 {
     var result:         vec3f = surfaceNormal;
-    let tangentNormal:  vec3f = textureSample(normalsTexture, linearSampler, uv).xyz * 2.0 - 1.0;
-    
-    let tbn = mat3x3f(normalize(tangent.xyz), normalize(bitangent.xyz), normalize(surfaceNormal.xyz));
-    result = normalize(tbn * tangentNormal);
+    if (model.hasNormalTexture == 1u)
+    {
+        let tangentNormal:  vec3f = textureSample(normalsTexture, linearSampler, uv).xyz * 2.0 - 1.0;
+        let tbn = mat3x3f(normalize(tangent.xyz), normalize(bitangent.xyz), normalize(surfaceNormal.xyz));
+        result = normalize(tbn * tangentNormal); 
+    }
     return result;
 }
 
@@ -193,7 +201,7 @@ fn reinhard_extended(v: vec3f, max_white: f32) -> vec3f
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4f 
 {
-    let albedo: vec3f = textureSample(baseColorTexture, linearSampler, in.uv).rgb;
+    let albedo: vec3f = model.baseColorFactor.rgb * textureSample(baseColorTexture, linearSampler, in.uv).rgb;
 
     var finalColor: vec3f = albedo;
 
@@ -253,8 +261,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
 
     finalColor   = occlusion(finalColor, in.uv, 1.0);
     let shadow   = shadow(in.fragPositionWorld);
-    finalColor   = finalColor * (0.2 + (0.8 * shadow));
-    finalColor  += textureSample(emissiveTexture, linearSampler, in.uv).rgb;
+    finalColor   = finalColor * (0.3 + (0.7 * shadow));
+    finalColor  += select(vec3(0.0), textureSample(emissiveTexture, linearSampler, in.uv).rgb, model.hasEmissiveTexture == 1u);
 
     let exposureStops = 1.4;
     let exposureFactor = pow(2.0, exposureStops);

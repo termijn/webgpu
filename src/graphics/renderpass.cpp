@@ -14,7 +14,7 @@ RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget, DepthTarget& shadow
 {
     createPipeline();
 
-    Image emptyImage(std::vector<unsigned char>(4 * 256 * 256));
+    Image emptyImage(std::vector<unsigned char>(4 * 256 * 256, 255));
     emptyImage.width = 256;
     emptyImage.height = 256;
     emptyImage.bytesPerPixel = 4;
@@ -44,8 +44,14 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
     {
         ModelData data
         {
-            .model                   = renderable->object->getSpace().toRoot,
-            .modelInverseTranspose   = transpose(renderable->object->getSpace().fromRoot)
+            .model                          = renderable->object->getSpace().toRoot,
+            .modelInverseTranspose          = transpose(renderable->object->getSpace().fromRoot),
+            .hasBaseColorTexture            = renderable->material.baseColorTexture.has_value() ? 1u : 0u,
+            .hasOcclusionTexture            = renderable->material.occlusion.has_value() ? 1u : 0u,
+            .hasNormalTexture               = renderable->material.normalMap.has_value() ? 1u : 0u,
+            .hasEmissiveTexture             = renderable->material.emissive.has_value() ? 1u : 0u,
+            .hasMetallicRoughnessTexture    = renderable->material.metallicRoughness.has_value() ? 1u : 0u,
+            .baseColorFactor                = vec4(renderable->material.albedo, 1.0)
         };
         m_uniformsModel.writeChanges(index, data);
 
@@ -269,7 +275,7 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     fillTextureBindGroupLayoutEntry  (modelEntries[4], 4);
     fillTextureBindGroupLayoutEntry  (modelEntries[5], 5);
     fillTextureBindGroupLayoutEntry  (modelEntries[6], 6);
-    
+
     WGPUBindGroupLayoutDescriptor groupLayoutFrame{};
     groupLayoutFrame.label = "grouplayout0 - per frame data";
     groupLayoutFrame.nextInChain = nullptr;

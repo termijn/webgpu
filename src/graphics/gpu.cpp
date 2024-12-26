@@ -430,7 +430,7 @@ WGPURequiredLimits Gpu::getRequiredLimits(WGPUAdapter adapter) const
 
     requiredLimits.limits.maxBindGroups                     = 2;
     requiredLimits.limits.maxUniformBuffersPerShaderStage   = 1;
-    requiredLimits.limits.maxUniformBufferBindingSize       = sizeof(float) * 16 * 16;
+    requiredLimits.limits.maxUniformBufferBindingSize       = sizeof(float) * 53;
     requiredLimits.limits.maxDynamicUniformBuffersPerPipelineLayout = 2;
 
     requiredLimits.limits.maxTextureDimension1D = 2048;
