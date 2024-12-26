@@ -59,6 +59,9 @@ var shadowTexture: texture_depth_2d;
 @group(0) @binding(2) 
 var shadowSampler: sampler_comparison;
 
+@group(0) @binding(3)
+var environmentTexture: texture_cube<f32>;
+
 @group(1) @binding(0)
 var<uniform> model: Model;
 
@@ -227,28 +230,28 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
         let cosLi: f32 = max(0.0f, dot(N, Li));
         let cosLh: f32 = max(0.0f, dot(N, Lh));
 
-        let  F: vec3f  = fresnelSchlick(F0, max(0.0f, dot(Lh, Li)));
-        let D: f32   = ndfGGX(cosLh, finalRoughness);
-        let G: f32  = gaSchlickGGX(cosLi, cosLo, finalRoughness);
+        let F: vec3f  = fresnelSchlick(F0, max(0.0f, dot(Lh, Li)));
+        let D: f32    = ndfGGX(cosLh, finalRoughness);
+        let G: f32    = gaSchlickGGX(cosLi, cosLo, finalRoughness);
         let  kd: vec3f = mix(vec3(1.0f) - F, vec3(0.0f), finalMetallic);
 
         let diffuseBRDF: vec3f    = kd * albedo;
         var specularBRDF: vec3f   = F * D * G / (4.0 * cosLi * cosLo + 0.001);
         specularBRDF        = mix(specularBRDF, vec3(0.0), finalRoughness);
 
-        // envReflection   = vec3(0.0);
+        var envReflection   = vec3(0.0);
         // if (reflectionMap.hasReflectionMap)
         // {
-        //     vec3  reflected  = reflect(-Lo, N);
-        //     float  mipLevel  = finalRoughness * float(reflectionMap.maxMipLevel);
-        //     vec3 specColor   = textureLod(reflectionMap.texture, reflected, mipLevel).rgb;
-        //     envReflection    = F * pow(specColor, vec3(2.2));
+        let reflected  = normalize(reflect(-Lo, N));
+        let mipLevel  = finalRoughness * 6;// todo: float(reflectionMap.maxMipLevel);
+        let specColor:vec3f = textureSampleLevel(environmentTexture, linearSampler, reflected, mipLevel).rgb;
+        envReflection    = F * specColor;
 
-        //     directLighting += (mix(diffuseBRDF, envReflection, finalMetallic * F) + specularBRDF) * lightColor * cosLi;
+        directLighting += (mix(diffuseBRDF, envReflection, finalMetallic * F) + specularBRDF) * lightColor * cosLi;
         // } 
         // else
         // {
-            directLighting += (diffuseBRDF +  specularBRDF) * lightColor * cosLi;
+        //directLighting += (diffuseBRDF +  specularBRDF) * lightColor * cosLi;
         //}
     }
 

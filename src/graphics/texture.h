@@ -3,6 +3,7 @@
 #include <webgpu/webgpu.h>
 #include <glm/glm.hpp>
 #include "image.h"
+#include "cubemap.h"
 
 class Gpu;
 
@@ -40,7 +41,10 @@ public:
     ~Texture();
 
     void setSize(glm::vec2 size);
+    void setSize(glm::vec3 size);
+
     void setImage(const Image& image);
+    void setCubemap(const Cubemap& cubemap);
 
     WGPUTextureView&         getTextureView();
 
@@ -54,6 +58,7 @@ private:
     void writeMipMaps(
         WGPUExtent3D    textureSize,
         int bytesPerPixel,
+        uint32_t layer,
         const unsigned char* pixelData);
 
 };

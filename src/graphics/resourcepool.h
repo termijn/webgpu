@@ -21,14 +21,14 @@ public:
 
     Texture&        get(const Image* image, bool srgb = false);
     VertexBuffer&   get(const Renderable* renderable);
-  //  CubemapTexture& get(const Cubemap* cubemap);
+    Texture&        get(const Cubemap* cubemap);
 
 private:
     Gpu& m_gpu;
 
-    std::map<const std::vector<Vertex>*, VertexBuffer>   poolVertexBuffers;
-    std::map<const uint8_t*,    Texture>                 m_poolTextures;
-//    std::map<const Cubemap*, CubemapTexture>             poolCubemaps;
+    std::map<const std::vector<Vertex>*, VertexBuffer>  poolVertexBuffers;
+    std::map<const uint8_t*, Texture>                   m_poolTextures;
+    std::map<const Cubemap*, Texture>                   m_poolCubemaps;
 
     ResourcePool            (const ResourcePool&)   = delete;
     ResourcePool& operator= (const ResourcePool&)   = delete;

@@ -576,16 +576,16 @@ Image loadImage(const std::string &filePath)
 {
     std::cout << "loadImage() - " << filePath << std::endl;
     int x, y, n = 0;
-    unsigned char *data = stbi_load(filePath.c_str(), &x, &y, &n, STBI_rgb_alpha);
+    unsigned char *data = stbi_load(filePath.c_str(), &x, &y, &n, STBI_rgb_alpha); 
 
     Image image;
-    image.bytesPerPixel = n;
+    image.bytesPerPixel = 4;
     image.width         = x;
     image.height        = y;
 
-    image.pixels->assign(data, data + x * y * n);
+    image.pixels->assign(data, data + x * y * 4);
 
-    image.type = n == 4 ? Image::Type::RGBA : Image::Type::RGB;
+    image.type = Image::Type::RGBA;
     stbi_image_free(data);
     return image;
 }

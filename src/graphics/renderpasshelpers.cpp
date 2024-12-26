@@ -10,6 +10,16 @@ void fillTextureBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int bindin
     entry.texture.multisampled  = false;
 }
 
+void fillTextureCubeBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding)
+{
+    setDefault(entry);
+    entry.binding               = binding;
+    entry.visibility            = WGPUShaderStage_Fragment;
+    entry.texture.sampleType    = WGPUTextureSampleType_Float;
+    entry.texture.viewDimension = WGPUTextureViewDimension_Cube;
+    entry.texture.multisampled  = false;
+}
+
 void fillDepthTextureBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding)
 {
     setDefault(entry);

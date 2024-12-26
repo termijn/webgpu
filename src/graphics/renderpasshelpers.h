@@ -3,6 +3,8 @@
 #include <webgpu/webgpu.h>
 
 void fillTextureBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding);
+void fillTextureCubeBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding);
+
 void fillDepthTextureBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding);
 
 void fillSamplerBindGroupLayoutEntry(WGPUBindGroupLayoutEntry& entry, int binding);

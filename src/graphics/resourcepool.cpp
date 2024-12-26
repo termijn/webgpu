@@ -59,14 +59,27 @@ VertexBuffer &ResourcePool::get(const Renderable *renderable)
     return it->second;
 }
 
-// CubemapTexture &ResourcePool::get(const Cubemap *cubemap)
-// {
-//     if (!poolCubemaps.contains(cubemap))
-//     {
-//         poolCubemaps.emplace(std::piecewise_construct,
-//                           std::forward_as_tuple(cubemap),
-//                           std::tuple<>());
-//         poolCubemaps[cubemap].setCubemap(*cubemap);
-//     }
-//     return poolCubemaps[cubemap];
-// }
+Texture& ResourcePool::get(const Cubemap* cubemap)
+{
+    auto it = m_poolCubemaps.find(cubemap);
+    if (it == m_poolCubemaps.end()) 
+    {
+        Texture::Params params
+        {
+            .format = Texture::Format::RGBAsrgb,
+            .sampleCount = 1,
+            .usage = Texture::Usage::CopySrcTextureBinding
+        };
+        auto [newIt, inserted] = m_poolCubemaps.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(cubemap),
+            std::forward_as_tuple(m_gpu, params)
+        );
+
+        if (inserted) {
+            newIt->second.setCubemap(*cubemap);
+        }
+        it = newIt;
+    }
+    return it->second;
+}

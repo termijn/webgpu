@@ -35,6 +35,14 @@ if (EMSCRIPTEN)
 else()
     set(SHADER_SOURCECOLOR  "${CMAKE_SOURCE_DIR}/shaders/colorpass.wgsl")
     set(SHADER_SOURCESHADOW "${CMAKE_SOURCE_DIR}/shaders/shadowpass.wgsl")
+    set(CUBEMAP_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/cubemap)
+    
+    file(GLOB_RECURSE CUBEMAP_REFERENCES ${CMAKE_CURRENT_SOURCE_DIR}/cubemap/*.png)
+    file(MAKE_DIRECTORY ${CUBEMAP_OUTPUT_DIR})
+    add_custom_target(CopyCubemapImages ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CUBEMAP_REFERENCES} ${CUBEMAP_OUTPUT_DIR}
+    COMMENT "Copying cubemap images to the output directory")
 
     add_custom_command(
         TARGET ${CMAKE_PROJECT_NAME}
@@ -59,6 +67,10 @@ else()
           ${CMAKE_COMMAND} -E copy_if_different
           ${MODEL_SOURCE}
           $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/models/DamagedHelmet.glb
+        COMMAND
+          ${CMAKE_COMMAND} -E copy_if_different
+          ${MODEL_SOURCE}
+          $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/models/ABeautifulGame.glb
       )
 
     file(GLOB_RECURSE SHADER_REFERENCES  ${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.wgsl)

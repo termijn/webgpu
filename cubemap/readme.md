@@ -1,0 +1,1 @@
+Used https://jaxry.github.io/panorama-to-cubemap/ to convert a panorama to a cube map

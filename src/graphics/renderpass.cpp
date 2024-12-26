@@ -60,6 +60,7 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         Texture* normalsTexture             = nullptr;
         Texture* emissiveTexture            = nullptr;
         Texture* metallicRoughnessTexture   = nullptr;
+        Texture* environmentMapTexture      = nullptr;
 
         if (renderable->material.baseColorTexture.has_value())
         {
@@ -91,7 +92,13 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
             metallicRoughnessTexture = &m_gpu.getResourcePool().get(&image);
         }
 
-        auto bindGroups = createBindings(renderable, baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture, metallicRoughnessTexture); 
+        if (renderable->material.reflectionMap.has_value())
+        {
+            const Cubemap* cubemap = renderable->material.reflectionMap.value();
+            environmentMapTexture = &m_gpu.getResourcePool().get(cubemap);
+        }
+
+        auto bindGroups = createBindings(renderable, baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture, metallicRoughnessTexture, environmentMapTexture);
 
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
@@ -262,10 +269,11 @@ void RenderPass::createPipeline()
 
 void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 {
-    std::array<WGPUBindGroupLayoutEntry, 3> frameEntries{};
+    std::array<WGPUBindGroupLayoutEntry, 4> frameEntries{};
     fillUniformsBindGroupLayoutEntry            (frameEntries[0], 0, sizeof(FrameData), false);
     fillDepthTextureBindGroupLayoutEntry        (frameEntries[1], 1);
     fillSamplerComparisonBindGroupLayoutEntry   (frameEntries[2], 2);
+    fillTextureCubeBindGroupLayoutEntry         (frameEntries[3], 3);
 
     std::array<WGPUBindGroupLayoutEntry, 7> modelEntries{};
     fillUniformsBindGroupLayoutEntry (modelEntries[0], 0, sizeof(ModelData), true);
@@ -299,9 +307,9 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     pipeline.layout = m_layout;
 }
 
-std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* renderable, Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture)
+std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* renderable, Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture, Texture* cubeMapTexture)
 {
-    std::array<WGPUBindGroupEntry, 3> frameBindings{};
+    std::array<WGPUBindGroupEntry, 4> frameBindings{};
     WGPUBindGroupEntry& entry0 = frameBindings[0];
     entry0.nextInChain = nullptr;
     entry0.binding = 0; 
@@ -316,6 +324,10 @@ std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* render
     WGPUBindGroupEntry& entryDepthSampler = frameBindings[2];
     entryDepthSampler.binding = 2;
     entryDepthSampler.sampler = m_gpu.m_depthSampler;
+
+    WGPUBindGroupEntry& entryCubemap = frameBindings[3];
+    entryCubemap.binding = 3;
+    entryCubemap.textureView = cubeMapTexture != nullptr ? cubeMapTexture->getTextureView(): m_optionalTexture.getTextureView();
 
     std::array<WGPUBindGroupEntry, 7> bindings{};
     

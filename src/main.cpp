@@ -42,6 +42,14 @@ int main (int, char**)
     Scheduler       scheduler;
     WindowTarget    windowTarget(gpu);
 
+    Cubemap reflectionMap;
+    reflectionMap.positiveX = loadImage("./cubemap/px.png");
+    reflectionMap.negativeX = loadImage("./cubemap/nx.png");
+    reflectionMap.positiveY = loadImage("./cubemap/py.png");
+    reflectionMap.negativeY = loadImage("./cubemap/ny.png");
+    reflectionMap.positiveZ = loadImage("./cubemap/pz.png");
+    reflectionMap.negativeZ = loadImage("./cubemap/nz.png"); 
+
     std::unique_ptr<Viewport>        viewport = std::make_unique<Viewport>(scheduler, gpu, windowTarget);
 
     Object          root;
@@ -49,9 +57,12 @@ int main (int, char**)
     CameraObject    camera  = CameraObject(root);
     LightObject     light   = LightObject(camera);
 
-    sceneParent  .setTransform(scale(mat4(1.0), vec3(5.0)));
-    
     std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", sceneParent);
+    for (auto& renderable: scene->all())
+           renderable->getRenderable().material.reflectionMap = &reflectionMap;
+
+    sceneParent  .setTransform(scale(mat4(1.0), vec3(5.0)));
+
     Box box = scene->getBox();
     vec3 sceneCenter = Space::pos(box.center(), Space(), camera.getParentSpace());
     float diameter   = Space::dir(box.max - box.min, Space(), camera.getParentSpace()).length();
@@ -68,7 +79,7 @@ int main (int, char**)
         viewport->attachRenderable(renderable->getRenderable());
 
     camera.lookAt(sceneCenter + vec3(0, 0, diameter * 5), sceneCenter, vec3(0, 1, 0));
-
+//    camera.lookAt(vec3(0, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
     RollInput   cameraInput     = RollInput(*viewport, camera);
 
     scheduler.run();

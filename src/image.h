@@ -13,6 +13,8 @@ public:
 
     virtual ~Image();
 
+    const Image toRGBA() const;
+
     Image& operator=(const Image& rhs);
 
     enum class Type {

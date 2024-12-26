@@ -74,12 +74,16 @@ Texture::~Texture()
     m_texture       = nullptr;
     m_textureView   = nullptr;
 };
-
-void Texture::setSize(vec2 size)
+void Texture::setSize(glm::vec2 size)
 {
-    uvec2 newSize (static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y));
+    setSize(vec3(size, 1));
+}
 
-    if (newSize.x != m_textureDesc.size.width || newSize.y != m_textureDesc.size.height)
+void Texture::setSize(vec3 size)
+{
+    uvec3 newSize (static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), static_cast<uint32_t>(size.z));
+
+    if (newSize.x != m_textureDesc.size.width || newSize.y != m_textureDesc.size.height || newSize.z != m_textureDesc.size.depthOrArrayLayers)
     {
         if (m_texture != nullptr)
         {
@@ -88,16 +92,16 @@ void Texture::setSize(vec2 size)
             wgpuTextureRelease(m_texture);
         }
 
-        m_textureDesc.size = WGPUExtent3D { .width = newSize.x, .height = newSize.y, .depthOrArrayLayers = 1 };
+        m_textureDesc.size = WGPUExtent3D { .width = newSize.x, .height = newSize.y, .depthOrArrayLayers = newSize.z};
         m_texture = wgpuDeviceCreateTexture(m_gpu.m_device, &m_textureDesc);
 
         WGPUTextureViewDescriptor textureViewDesc {};
         textureViewDesc.aspect = (m_params.format == Format::Depth24Plus || m_params.format == Format::Depth32) ? WGPUTextureAspect_DepthOnly : WGPUTextureAspect_All;
         textureViewDesc.baseArrayLayer = 0;
-        textureViewDesc.arrayLayerCount = 1;
+        textureViewDesc.arrayLayerCount = newSize.z;
         textureViewDesc.baseMipLevel = 0;
         textureViewDesc.mipLevelCount = m_textureDesc.mipLevelCount;
-        textureViewDesc.dimension = WGPUTextureViewDimension_2D;
+        textureViewDesc.dimension = size.z == 6 ? WGPUTextureViewDimension_Cube : WGPUTextureViewDimension_2D;
         textureViewDesc.format = m_textureDesc.format;
         m_textureView = wgpuTextureCreateView(m_texture, &textureViewDesc);
     }
@@ -114,47 +118,44 @@ uint32_t bit_width(uint32_t m)
 }
 
 void Texture::writeMipMaps(
-        WGPUExtent3D    textureSize,
-        int bytesPerPixel,
-        const uint8_t* pixelData)
+    WGPUExtent3D    textureSize,
+    int             bytesPerPixel,
+    uint32_t        layer,
+    const uint8_t*  pixelData)
 {
     WGPUQueue& queue = m_gpu.m_queue;
 
     m_textureDesc.mipLevelCount = bit_width(std::max(textureSize.width, textureSize.height));
-    setSize(vec2(textureSize.width, textureSize.height));
+    setSize(vec3(textureSize.width, textureSize.height, textureSize.depthOrArrayLayers));
 
     WGPUImageCopyTexture destination {};
     destination.texture = m_texture;
-    destination.origin = { 0, 0, 0 };
+    destination.origin = { 0, 0, layer};
     destination.aspect = WGPUTextureAspect_All;
 
-    WGPUTextureDataLayout source;
-    source.offset = 0;
-
-    WGPUExtent3D mipLevelSize = textureSize;
+    WGPUExtent3D mipLevelSize = {textureSize.width, textureSize.height, 1};
     std::vector<unsigned char> previousLevelPixels;
     WGPUExtent3D previousMipLevelSize;
     for (uint32_t level = 0; level < m_textureDesc.mipLevelCount; ++level) 
     {
-        std::vector<unsigned char> pixels(4 * mipLevelSize.width * mipLevelSize.height);
+        std::vector<unsigned char> pixels(bytesPerPixel * mipLevelSize.width * mipLevelSize.height);
         if (level == 0) 
         {
-            // We cannot really avoid this copy since we need this
-            // in previousLevelPixels at the next iteration
             memcpy(pixels.data(), pixelData, pixels.size());
         }
         else 
         {
-            // Create mip level data
-            for (uint32_t i = 0; i < mipLevelSize.width; ++i) {
-                for (uint32_t j = 0; j < mipLevelSize.height; ++j) {
-                    unsigned char* p = &pixels[4 * (j * mipLevelSize.width + i)];
+            for (uint32_t y = 0; y < mipLevelSize.height; y++) 
+            {
+                for (uint32_t x = 0; x < mipLevelSize.width; x++) 
+                {
                     // Get the corresponding 4 pixels from the previous level
-                    unsigned char* p00 = &previousLevelPixels[4 * ((2 * j + 0) * previousMipLevelSize.width + (2 * i + 0))];
-                    unsigned char* p01 = &previousLevelPixels[4 * ((2 * j + 0) * previousMipLevelSize.width + (2 * i + 1))];
-                    unsigned char* p10 = &previousLevelPixels[4 * ((2 * j + 1) * previousMipLevelSize.width + (2 * i + 0))];
-                    unsigned char* p11 = &previousLevelPixels[4 * ((2 * j + 1) * previousMipLevelSize.width + (2 * i + 1))];
+                    unsigned char* p00 = &previousLevelPixels[bytesPerPixel * ((2 * y + 0) * previousMipLevelSize.width + (2 * x + 0))];
+                    unsigned char* p01 = &previousLevelPixels[bytesPerPixel * ((2 * y + 0) * previousMipLevelSize.width + (2 * x + 1))];
+                    unsigned char* p10 = &previousLevelPixels[bytesPerPixel * ((2 * y + 1) * previousMipLevelSize.width + (2 * x + 0))];
+                    unsigned char* p11 = &previousLevelPixels[bytesPerPixel * ((2 * y + 1) * previousMipLevelSize.width + (2 * x + 1))];
                     // Average
+                    unsigned char* p = &pixels[bytesPerPixel * (y * mipLevelSize.width + x)];
                     p[0] = (p00[0] + p01[0] + p10[0] + p11[0]) / 4;
                     p[1] = (p00[1] + p01[1] + p10[1] + p11[1]) / 4;
                     p[2] = (p00[2] + p01[2] + p10[2] + p11[2]) / 4;
@@ -163,9 +164,10 @@ void Texture::writeMipMaps(
             }
         }
 
-        // Upload data to the GPU texture
         destination.mipLevel = level;
-        source.bytesPerRow = 4 * mipLevelSize.width;
+
+        WGPUTextureDataLayout source{};
+        source.bytesPerRow = bytesPerPixel * mipLevelSize.width;
         source.rowsPerImage = mipLevelSize.height;
         wgpuQueueWriteTexture(queue, &destination, pixels.data(), pixels.size(), &source, &mipLevelSize);
 
@@ -182,12 +184,34 @@ void Texture::setImage(const Image& image)
 
     if (image.type == Image::Type::R8) 
     {
-        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, image.pixels->data());
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, 0, image.pixels->data());
+    }
+
+    if (image.type == Image::Type::RGB)
+    {
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, image.bytesPerPixel, 0, image.pixels->data());
     }
 
     if (image.type == Image::Type::RGBA)
     {
-        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 4, image.pixels->data());
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 4, 0, image.pixels->data());
+    }
+}
+
+void Texture::setCubemap(const Cubemap& cubemap)
+{
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        const Image& image = cubemap.faces(i);
+        if (image.bytesPerPixel == 4)
+        {
+            writeMipMaps({uint32_t(image.width), uint32_t(image.height), 6}, image.bytesPerPixel, i, image.pixels->data());
+        }
+        else
+        {
+            const Image rgbaImage = image.toRGBA();
+            writeMipMaps({uint32_t(rgbaImage.width), uint32_t(rgbaImage.height), 6}, rgbaImage.bytesPerPixel, i, rgbaImage.pixels->data());
+        }
     }
 }
 

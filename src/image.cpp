@@ -25,6 +25,23 @@ Image::Image(const std::vector<uint8_t>& pixels)
 {
 }
 
+const Image Image::toRGBA() const
+{
+    Image result(width * height * 4);
+    result.width = width;
+    result.height = height;
+    result.bytesPerPixel = 4;
+    result.type = Image::Type::RGBA;
+    for (size_t i = 0; i < width * height; ++i)
+    {
+        result.pixels->at(i * 4 + 0) = pixels->at(i * bytesPerPixel + 0); // Red
+        result.pixels->at(i * 4 + 1) = pixels->at(i * bytesPerPixel + 1); // Green
+        result.pixels->at(i * 4 + 2) = pixels->at(i * bytesPerPixel + 2); // Blue
+        result.pixels->at(i * 4 + 3) = 255;                   // Alpha (set to opaque)
+    }
+    return result;
+}
+
 Image::Image(const Image& rhs)
     : pixels(std::make_shared<std::vector<uint8_t>>())
 {

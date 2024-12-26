@@ -121,9 +121,9 @@ WGPUSampler Gpu::createLinearSampler(WGPUDevice device)
     samplerDesc.magFilter = WGPUFilterMode_Linear;
     samplerDesc.minFilter = WGPUFilterMode_Linear;
     samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
-    samplerDesc.lodMinClamp = 0.0f;
-    samplerDesc.lodMaxClamp = 1.0f;
     samplerDesc.compare = WGPUCompareFunction_Undefined;
+    samplerDesc.lodMinClamp = 0;
+    samplerDesc.lodMaxClamp = FLT_MAX;
     samplerDesc.maxAnisotropy = 8;
     WGPUSampler linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
     return linearSampler;
