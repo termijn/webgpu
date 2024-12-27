@@ -3,6 +3,7 @@
 #include <memory>
 #include "renderable.h"
 #include "mesh.h"
+#include "cubemap.h"
 
 class RenderableObject
 {
@@ -27,6 +28,8 @@ public:
     const std::vector<std::unique_ptr<RenderableObject>>& all() const;
 
     Box getBox();
+
+    Cubemap* m_environmentMap = nullptr;
 
 private:
     std::vector<std::unique_ptr<RenderableObject>> renderables;

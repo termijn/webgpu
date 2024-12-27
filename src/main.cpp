@@ -42,6 +42,11 @@ int main (int, char**)
     Scheduler       scheduler;
     WindowTarget    windowTarget(gpu);
 
+    Object          root;
+    Object          sceneParent(root);
+    CameraObject    camera  = CameraObject(root);
+    LightObject     light   = LightObject(camera);
+
     Cubemap reflectionMap;
     reflectionMap.positiveX = loadImage("./cubemap/px.png");
     reflectionMap.negativeX = loadImage("./cubemap/nx.png");
@@ -50,16 +55,10 @@ int main (int, char**)
     reflectionMap.positiveZ = loadImage("./cubemap/pz.png");
     reflectionMap.negativeZ = loadImage("./cubemap/nz.png"); 
 
-    std::unique_ptr<Viewport>        viewport = std::make_unique<Viewport>(scheduler, gpu, windowTarget);
-
-    Object          root;
-    Object          sceneParent(root);
-    CameraObject    camera  = CameraObject(root);
-    LightObject     light   = LightObject(camera);
-
     std::unique_ptr<Scene> scene = loadModelObjects("./models/DamagedHelmet.glb", sceneParent);
-    for (auto& renderable: scene->all())
-           renderable->getRenderable().material.reflectionMap = &reflectionMap;
+    scene->m_environmentMap = &reflectionMap;
+
+    std::unique_ptr<Viewport>        viewport = std::make_unique<Viewport>(scheduler, gpu, windowTarget, *scene);
 
     sceneParent  .setTransform(scale(mat4(1.0), vec3(5.0)));
 
@@ -79,7 +78,7 @@ int main (int, char**)
         viewport->attachRenderable(renderable->getRenderable());
 
     camera.lookAt(sceneCenter + vec3(0, 0, diameter * 5), sceneCenter, vec3(0, 1, 0));
-//    camera.lookAt(vec3(0, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
+    //camera.lookAt(vec3(0, 0, -5), vec3(0,0,0), vec3(0, 1, 0));
     RollInput   cameraInput     = RollInput(*viewport, camera);
 
     scheduler.run();

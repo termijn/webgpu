@@ -6,6 +6,7 @@
 #include "scheduler.h"
 #include "renderable.h"
 #include "input.h"
+#include "scene.h"
 
 // The viewport renders to a render target (either a window or a canvas).
 // It handles mouse events and connects the graphics layer. 
@@ -15,7 +16,7 @@ friend class Scheduler;
 friend class Input;
 
 public:
-    Viewport(Scheduler& scheduler, Gpu& gpu, RenderTarget& renderTarget);
+    Viewport(Scheduler& scheduler, Gpu& gpu, RenderTarget& renderTarget, const Scene& scene);
     virtual ~Viewport();
 
     void attachCamera       (const CameraObject& camera);
@@ -32,8 +33,9 @@ protected:
 
 private:
     Scheduler&      m_scheduler;
-    Gpu& m_gpu;
+    Gpu&            m_gpu;
     RenderTarget&   m_renderTarget;
+    const Scene&    m_scene;
     
     const CameraObject*     m_camera  = nullptr;
     const LightObject*      m_light   = nullptr;

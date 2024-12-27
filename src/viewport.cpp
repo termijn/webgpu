@@ -2,10 +2,11 @@
 
 using namespace glm;
 
-Viewport::Viewport(Scheduler& scheduler, Gpu &gpu, RenderTarget &renderTarget)
+Viewport::Viewport(Scheduler& scheduler, Gpu &gpu, RenderTarget &renderTarget, const Scene& scene)
     : m_scheduler     (scheduler)
     , m_gpu           (gpu)
     , m_renderTarget  (renderTarget)
+    , m_scene         (scene)
     , m_depthTarget   (gpu)
     , m_shadowPass    (gpu, m_depthTarget)
     , m_renderPass    (gpu, renderTarget, m_depthTarget)
@@ -43,7 +44,8 @@ void Viewport::render()
         .lightPosWorld  = lightpos,
         .projection     = m_camera->getSpace().to(projectionSpace),
         .view           = m_camera->getSpace().fromRoot,
-        .shadowViewProjection = m_light->getProjection() * m_light->getView()
+        .shadowViewProjection = m_light->getProjection() * m_light->getView(),
+        .environmentMap = m_scene.m_environmentMap
     };
 
     m_renderPass.renderPre(params);

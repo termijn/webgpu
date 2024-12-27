@@ -23,7 +23,9 @@ struct Frame
     projection:           mat4x4f,
     shadowViewProjection: mat4x4f,
     viewPositionWorld:    vec4f,
-    lightPositionWorld:   vec4f
+    lightPositionWorld:   vec4f,
+    hasEnvironmentMap:    u32,
+    mipLevelCount:        u32
 }
 
 struct Model
@@ -230,35 +232,39 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f
         let cosLi: f32 = max(0.0f, dot(N, Li));
         let cosLh: f32 = max(0.0f, dot(N, Lh));
 
-        let F: vec3f  = fresnelSchlick(F0, max(0.0f, dot(Lh, Li)));
+        let cosTheta: f32 = max(0.0f, dot(Lh, Li));
+
+        let F: vec3f  = fresnelSchlick(F0, cosTheta);
         let D: f32    = ndfGGX(cosLh, finalRoughness);
         let G: f32    = gaSchlickGGX(cosLi, cosLo, finalRoughness);
-        let  kd: vec3f = mix(vec3(1.0f) - F, vec3(0.0f), finalMetallic);
+        let kd: vec3f = mix(vec3(1.0f) - F, vec3(0.0f), finalMetallic);
 
         let diffuseBRDF: vec3f    = kd * albedo;
         var specularBRDF: vec3f   = F * D * G / (4.0 * cosLi * cosLo + 0.001);
         specularBRDF        = mix(specularBRDF, vec3(0.0), finalRoughness);
 
         var envReflection   = vec3(0.0);
-        // if (reflectionMap.hasReflectionMap)
-        // {
-        let reflected  = normalize(reflect(-Lo, N));
-        let mipLevel  = finalRoughness * 6;// todo: float(reflectionMap.maxMipLevel);
-        let specColor:vec3f = textureSampleLevel(environmentTexture, linearSampler, reflected, mipLevel).rgb;
-        envReflection    = F * specColor;
+        if (frame.hasEnvironmentMap == 1u)
+        {
+            let reflected       = normalize(reflect(-Lo, N));
+            let mipLevel        = finalRoughness * f32(frame.mipLevelCount);
+            let specColor:vec3f = textureSampleLevel(environmentTexture, linearSampler, reflected, mipLevel).rgb;
+            envReflection       = F * specColor;
 
-        directLighting += (mix(diffuseBRDF, envReflection, finalMetallic * F) + specularBRDF) * lightColor * cosLi;
-        // } 
-        // else
-        // {
-        //directLighting += (diffuseBRDF +  specularBRDF) * lightColor * cosLi;
-        //}
+            directLighting += (mix(diffuseBRDF, envReflection, finalMetallic * F) + specularBRDF) * lightColor * cosLi;
+        } 
+        else
+        {
+            directLighting += (diffuseBRDF +  specularBRDF) * lightColor * cosLi;
+        }
+
+        let cosTheta2: f32 = clamp(dot(Lo, N), 0.0, 1.0);
+        let f: f32 = pow(1.0 - cosTheta2, rimLight.width);
+        let rimLight: vec3f = rimLight.color * vec3f(f) * rimLight.strength;
+        directLighting += rimLight;
+
     }
 
-    let fresnel: f32         = 1.0 - max(dot(N, Lo), 0.0);
-    let rimFactor: f32 = pow(fresnel, rimLight.width);
-    let rimLight: vec3f = rimLight.color * rimFactor * rimLight.strength;
-    directLighting += rimLight;
 
     finalColor =  directLighting;
 

@@ -24,6 +24,7 @@ public:
         glm::mat4 shadowViewProjection;
         glm::mat4 worldToLight;
         glm::vec4 lightPosWorld;
+        Cubemap*  environmentMap;
     };
 
     void renderPre  (const RenderParams& params);
@@ -33,6 +34,7 @@ private:
     Gpu&                m_gpu;
     RenderTarget&       m_renderTarget;
     DepthTarget&        m_shadowTarget;
+    RenderParams        m_params;
 
     Texture m_optionalTexture;
 
@@ -50,6 +52,8 @@ private:
 
     void createPipeline();
     void createLayout(WGPURenderPipelineDescriptor& pipeline);
-    std::array<WGPUBindGroup, 2> createBindings(const Renderable* renderable, Texture* texture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture, Texture* cubeMapTexture);
+    WGPUBindGroup createFrameBindings(const Texture* cubeMapTexture) const;
+    WGPUBindGroup createModelBindings(const Renderable* renderable, Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture);
+
     void drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables);
 };

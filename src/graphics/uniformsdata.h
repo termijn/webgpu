@@ -9,6 +9,9 @@ struct FrameData
     glm::mat4 shadowViewProjection  = glm::mat4(1.0);
     glm::vec4 viewPositionWorld     = glm::vec4(0.0);
     glm::vec4 lightPositionWorld    = glm::vec4(0.0);
+    uint32_t  hasEnvironmentMap     = 0;
+    uint32_t  mipLevelCount         = 0;
+    uint32_t  padding[2]            = {0, 0};
 
     bool operator==(const FrameData& other) const;
     bool operator!=(const FrameData& other) const;
@@ -19,6 +22,7 @@ struct ModelData
     glm::mat4 model                  = glm::mat4(1.0);
     glm::mat4 modelInverseTranspose  = glm::mat4(1.0);
     glm::vec4 baseColorFactor        = glm::vec4(1.0);
+
     uint32_t  hasBaseColorTexture     = 0;
     uint32_t  hasOcclusionTexture     = 0;
     uint32_t  hasNormalTexture        = 0;

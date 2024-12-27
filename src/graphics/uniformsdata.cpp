@@ -7,7 +7,8 @@ bool FrameData::operator==(const FrameData& other) const
         projection == other.projection &&
         shadowViewProjection == other.shadowViewProjection &&
         viewPositionWorld == other.viewPositionWorld &&
-        lightPositionWorld == other.lightPositionWorld;
+        lightPositionWorld == other.lightPositionWorld &&
+        hasEnvironmentMap == other.hasEnvironmentMap;
 }
 
 bool FrameData::operator!=(const FrameData& other) const
@@ -20,6 +21,12 @@ bool ModelData::operator==(const ModelData& other) const
     return 
         model == other.model &&
         modelInverseTranspose == other.modelInverseTranspose;
+        baseColorFactor == other.baseColorFactor &&
+        hasBaseColorTexture == other.hasBaseColorTexture &&
+        hasOcclusionTexture == other.hasOcclusionTexture &&
+        hasNormalTexture == other.hasNormalTexture &&
+        hasEmissiveTexture == other.hasEmissiveTexture &&
+        hasMetallicRoughnessTexture == other.hasMetallicRoughnessTexture;
 }
 
 bool ModelData::operator!=(const ModelData& other) const

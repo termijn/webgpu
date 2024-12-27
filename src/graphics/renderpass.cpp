@@ -34,9 +34,18 @@ RenderPass::~RenderPass()
 
 void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vector<const Renderable*>& renderables)
 {
+    Texture* environmentMapTexture      = nullptr;
+    if (m_params.environmentMap != nullptr)
+    {
+        environmentMapTexture = &m_gpu.getResourcePool().get(m_params.environmentMap);
+        m_frameData.mipLevelCount = environmentMapTexture->mipLevelCount();
+    }
+
+    const auto bindGroupFrame = createFrameBindings(environmentMapTexture);
+    wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroupFrame, 0, nullptr);
+
     m_uniformsFrame.setSize(1);
     m_uniformsFrame.writeChanges(0, m_frameData);
-
     m_uniformsModel.setSize(renderables.size());
 
     int index = 0;
@@ -60,7 +69,6 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         Texture* normalsTexture             = nullptr;
         Texture* emissiveTexture            = nullptr;
         Texture* metallicRoughnessTexture   = nullptr;
-        Texture* environmentMapTexture      = nullptr;
 
         if (renderable->material.baseColorTexture.has_value())
         {
@@ -92,38 +100,33 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
             metallicRoughnessTexture = &m_gpu.getResourcePool().get(&image);
         }
 
-        if (renderable->material.reflectionMap.has_value())
-        {
-            const Cubemap* cubemap = renderable->material.reflectionMap.value();
-            environmentMapTexture = &m_gpu.getResourcePool().get(cubemap);
-        }
-
-        auto bindGroups = createBindings(renderable, baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture, metallicRoughnessTexture, environmentMapTexture);
+        const auto bindGroupModel = createModelBindings(renderable, baseColorTexture, occlusionTexture, normalsTexture, emissiveTexture, metallicRoughnessTexture);
 
         uint32_t dataOffset = index * m_gpu.uniformStride(sizeof(ModelData));
 
         VertexBuffer& vertexBuffer = m_gpu.getResourcePool().get(renderable);
 
-        wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroups[0], 0, nullptr);
-        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, bindGroups[1], 1, &dataOffset);
+        wgpuRenderPassEncoderSetBindGroup(renderPass, 1, bindGroupModel, 1, &dataOffset);
 
         wgpuRenderPassEncoderSetIndexBuffer (renderPass, vertexBuffer.m_indexBuffer, WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(vertexBuffer.m_indexBuffer));
         wgpuRenderPassEncoderSetVertexBuffer(renderPass,  0, vertexBuffer.m_vertexBuffer, 0, wgpuBufferGetSize(vertexBuffer.m_vertexBuffer));
         wgpuRenderPassEncoderDrawIndexed    (renderPass, vertexBuffer.m_mesh->indices().size() * 3, 1, 0, 0, 0);
         index++;
 
-        for (auto& group : bindGroups)
-            wgpuBindGroupRelease(group);
+        wgpuBindGroupRelease(bindGroupModel);
     }
+    wgpuBindGroupRelease(bindGroupFrame);
 }
 
 void RenderPass::renderPre(const RenderParams& params)
 {
-    m_frameData.view                = params.view;
-    m_frameData.projection          = params.projection;
-    m_frameData.viewPositionWorld   = inverse(params.view)[3];
-    m_frameData.lightPositionWorld  = params.lightPosWorld;
+    m_params = params;
+    m_frameData.view                 = params.view;
+    m_frameData.projection           = params.projection;
+    m_frameData.viewPositionWorld    = inverse(params.view)[3];
+    m_frameData.lightPositionWorld   = params.lightPosWorld;
     m_frameData.shadowViewProjection = params.shadowViewProjection;
+    m_frameData.hasEnvironmentMap    = params.environmentMap != nullptr ? 1 : 0;
 }
 
 void RenderPass::render(const std::vector<const Renderable*>& renderables)
@@ -307,8 +310,8 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
     pipeline.layout = m_layout;
 }
 
-std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* renderable, Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture, Texture* cubeMapTexture)
-{
+WGPUBindGroup RenderPass::createFrameBindings(const Texture* environmentMap) const
+{ 
     std::array<WGPUBindGroupEntry, 4> frameBindings{};
     WGPUBindGroupEntry& entry0 = frameBindings[0];
     entry0.nextInChain = nullptr;
@@ -327,8 +330,18 @@ std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* render
 
     WGPUBindGroupEntry& entryCubemap = frameBindings[3];
     entryCubemap.binding = 3;
-    entryCubemap.textureView = cubeMapTexture != nullptr ? cubeMapTexture->getTextureView(): m_optionalTexture.getTextureView();
+    entryCubemap.textureView = environmentMap != nullptr ? environmentMap->getTextureView(): m_optionalTexture.getTextureView();
 
+    const WGPUBindGroupDescriptor group {
+        .layout        = m_bindGroupLayouts[0],
+        .entryCount    = frameBindings.size(),
+        .entries       = frameBindings.data()
+    };
+    return wgpuDeviceCreateBindGroup(m_gpu.m_device, &group);
+}
+
+WGPUBindGroup RenderPass::createModelBindings(const Renderable* renderable, Texture* baseColorTexture, Texture* occlusionTexture, Texture* normalsTexture, Texture* emissiveTexture, Texture* metallicRoughnessTexture)
+{ 
     std::array<WGPUBindGroupEntry, 7> bindings{};
     
     WGPUBindGroupEntry& entry1 = bindings[0];
@@ -362,17 +375,11 @@ std::array<WGPUBindGroup, 2> RenderPass::createBindings(const Renderable* render
     entryTexture.binding = 6;
     entryTexture.textureView = metallicRoughnessTexture != nullptr ? metallicRoughnessTexture->getTextureView() : m_optionalTexture.getTextureView();
 
-    WGPUBindGroupDescriptor group0{};
-    group0.nextInChain   = nullptr;
-    group0.layout        = m_bindGroupLayouts[0];
-    group0.entryCount    = frameBindings.size();
-    group0.entries       = frameBindings.data();
+    WGPUBindGroupDescriptor group{};
+    group.nextInChain   = nullptr;
+    group.layout        = m_bindGroupLayouts[1];
+    group.entryCount    = bindings.size();
+    group.entries       = bindings.data();
 
-    WGPUBindGroupDescriptor group1{};
-    group1.nextInChain   = nullptr;
-    group1.layout        = m_bindGroupLayouts[1];
-    group1.entryCount    = bindings.size();
-    group1.entries       = bindings.data();
-
-    return std::array<WGPUBindGroup, 2>{wgpuDeviceCreateBindGroup(m_gpu.m_device, &group0), wgpuDeviceCreateBindGroup(m_gpu.m_device, &group1)};
+    return wgpuDeviceCreateBindGroup(m_gpu.m_device, &group);
 }

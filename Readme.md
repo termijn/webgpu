@@ -12,13 +12,10 @@ Current status:
     * normal map
     * ambient occlusion map
     * emissive map
-    * basic diffuse shading
     * shadow map
     * PBR shading
+    * reflection map
 
 - Todo
     * shadow map poisson sampling
-    * generate mip map levels
-    * reflection map
-    * HDR
     * webassembly build

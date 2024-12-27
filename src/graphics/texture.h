@@ -46,7 +46,9 @@ public:
     void setImage(const Image& image);
     void setCubemap(const Cubemap& cubemap);
 
-    WGPUTextureView&         getTextureView();
+    uint32_t mipLevelCount() const;
+
+    const WGPUTextureView& getTextureView() const;
 
 private:
     Gpu&                    m_gpu;

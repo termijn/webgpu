@@ -215,7 +215,12 @@ void Texture::setCubemap(const Cubemap& cubemap)
     }
 }
 
-WGPUTextureView& Texture::getTextureView()
+uint32_t Texture::mipLevelCount() const
+{
+    return m_textureDesc.mipLevelCount;
+}
+
+const WGPUTextureView& Texture::getTextureView() const
 {
     return m_textureView;
 }
