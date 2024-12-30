@@ -36,6 +36,7 @@ private:
     WGPURequiredLimits  m_requiredLimits{};
     
     WGPUSampler         m_linearSampler;
+    WGPUSampler         m_nearestSampler;
     WGPUSampler         m_depthSampler;
 
     WGPUCommandEncoder m_currentCommandEncoder = nullptr;
@@ -49,6 +50,7 @@ private:
     
     WGPUSampler createLinearSampler(WGPUDevice device);
     WGPUSampler createDepthSampler(WGPUDevice device);
+    WGPUSampler createNearestSampler(WGPUDevice device);
     
     void        enumerateDeviceFeatures     (WGPUDevice device);
     void        enumerateAdapterProperties  (WGPUAdapter adapter);

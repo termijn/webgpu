@@ -28,6 +28,7 @@ Gpu::Gpu()
 
     m_linearSampler = createLinearSampler(m_device);
     m_depthSampler  = createDepthSampler(m_device);
+    m_nearestSampler = createNearestSampler(m_device);
 }
 
 Gpu::~Gpu()
@@ -137,6 +138,25 @@ WGPUSampler Gpu::createDepthSampler(WGPUDevice device)
     samplerDesc.maxAnisotropy = 1;
     WGPUSampler sampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
     return sampler;
+}
+
+WGPUSampler Gpu::createNearestSampler(WGPUDevice device)
+{
+    WGPUSamplerDescriptor samplerDesc{};
+    samplerDesc.nextInChain = nullptr;
+    samplerDesc.label = "nearestSampler";
+    samplerDesc.addressModeU = WGPUAddressMode_Repeat;
+    samplerDesc.addressModeV = WGPUAddressMode_Repeat;
+    samplerDesc.addressModeW = WGPUAddressMode_Repeat;
+    samplerDesc.magFilter = WGPUFilterMode_Nearest;
+    samplerDesc.minFilter = WGPUFilterMode_Nearest;
+    samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Nearest;
+    samplerDesc.compare = WGPUCompareFunction_Undefined;
+    samplerDesc.lodMinClamp = 0;
+    samplerDesc.lodMaxClamp = FLT_MAX;
+    samplerDesc.maxAnisotropy = 1;
+    WGPUSampler linearSampler = wgpuDeviceCreateSampler(m_device, &samplerDesc);
+    return linearSampler;
 }
 
 void Gpu::enumerateDeviceFeatures(WGPUDevice device)

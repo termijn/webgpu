@@ -12,10 +12,9 @@ Current status:
     * normal map
     * ambient occlusion map
     * emissive map
-    * shadow map
+    * shadow map with poisson sampling
     * PBR shading
     * reflection map
 
 - Todo
-    * shadow map poisson sampling
     * webassembly build

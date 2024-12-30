@@ -37,6 +37,9 @@ private:
     RenderParams        m_params;
 
     Texture m_optionalTexture;
+    Texture m_poissonTexture;
+
+    int m_nrPoissonSamples = 0;
 
     FrameData              m_frameData;
     Uniforms<FrameData>    m_uniformsFrame;

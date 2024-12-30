@@ -9,9 +9,10 @@ struct FrameData
     glm::mat4 shadowViewProjection  = glm::mat4(1.0);
     glm::vec4 viewPositionWorld     = glm::vec4(0.0);
     glm::vec4 lightPositionWorld    = glm::vec4(0.0);
+    uint32_t  nrPoissonSamples      = 0;
     uint32_t  hasEnvironmentMap     = 0;
     uint32_t  mipLevelCount         = 0;
-    uint32_t  padding[2]            = {0, 0};
+    uint32_t  padding[1]            = {0};
 
     bool operator==(const FrameData& other) const;
     bool operator!=(const FrameData& other) const;

@@ -225,9 +225,11 @@ int Image::makePoissonDisc(int width_, int height_, int minDistance)
 
         if (x >= 0 && x < width_ && y >= 0 && y < height_) 
         {
-            uint8_t r = static_cast<uint8_t>(point.x / float(width_) * 255.0f);
-            uint8_t g = static_cast<uint8_t>(point.y / float(height_) * 255.0f);
+            vec2 size           = vec2(width_, height_);
+            vec2 coordinate     = vec2(point.x, point.y) / size;
 
+            uint8_t r = static_cast<uint8_t>(coordinate.x * 255.0f);
+            uint8_t g = static_cast<uint8_t>(coordinate.y * 255.0f);
             setPixel(xi, 0, r, g);
         }
         xi++;

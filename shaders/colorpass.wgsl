@@ -24,6 +24,7 @@ struct Frame
     shadowViewProjection: mat4x4f,
     viewPositionWorld:    vec4f,
     lightPositionWorld:   vec4f,
+    nrPoissonSamples:     u32,
     hasEnvironmentMap:    u32,
     mipLevelCount:        u32
 }
@@ -63,6 +64,12 @@ var shadowSampler: sampler_comparison;
 
 @group(0) @binding(3)
 var environmentTexture: texture_cube<f32>;
+
+@group(0) @binding(4)
+var poissonTexture: texture_2d<f32>;
+
+@group(0) @binding(5) 
+var nearestSample: sampler;
 
 @group(1) @binding(0)
 var<uniform> model: Model;
@@ -135,27 +142,30 @@ fn toLightSpace(coord: vec4f) -> vec4f
 
 fn shadow(coord: vec4f) -> f32
 {
-    let shadowCoord: vec4f = toLightSpace(coord);
-    let uv = shadowCoord.xy;
+    const dimensions = 32f;
+    const shadowTexelSize = 1.0 / vec2f(2048, 2048);
 
-    var shadow = 0.0;
-    let shadowTexelSize = 1.0 / vec2f(2048, 2048);
-    for (var y = -3; y <= 3; y++) {
-        for (var x = -3; x <= 3 ; x++) {
-        let offset = vec2f(vec2(x, y)) * shadowTexelSize;
+    var shadow: f32 = 0.0;
 
-        shadow += textureSampleCompare(
-            shadowTexture, shadowSampler,
-            uv + offset, shadowCoord.z - 0.007
-        );
-        }
-    }
-    shadow /= 49.0;
-
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+    for (var i = 0u; i < frame.nrPoissonSamples; i++)
     {
-        shadow = 1.0;
+        let poissonOffset : vec2f = (textureSample(poissonTexture, nearestSample, vec2f(f32(i) / f32(frame.nrPoissonSamples), 0.0)).xy - 0.5) * 2.0;
+        let offsetInPixels: vec2f = poissonOffset * dimensions * 0.5;
+        let uvOffset      : vec2f = offsetInPixels * shadowTexelSize;
+
+        let shadowCoord: vec4f = toLightSpace(coord) + vec4f(uvOffset, 0.0, 0.0);
+
+        var shadowValue: f32    = textureSampleCompare(shadowTexture, shadowSampler, shadowCoord.xy, shadowCoord.z - 0.007);
+
+        if (shadowCoord.x < 0.0 || shadowCoord.x > 1.0 || shadowCoord.y < 0.0 || shadowCoord.y > 1.0)
+        {
+            shadowValue = 1.0;
+        }
+
+        shadow += shadowValue;
     }
+    shadow /= f32(frame.nrPoissonSamples);
+
     return shadow;
 }
 

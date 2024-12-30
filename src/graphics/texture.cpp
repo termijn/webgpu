@@ -121,11 +121,12 @@ void Texture::writeMipMaps(
     WGPUExtent3D    textureSize,
     int             bytesPerPixel,
     uint32_t        layer,
+    uint32_t        maxMipMaps,
     const uint8_t*  pixelData)
 {
     WGPUQueue& queue = m_gpu.m_queue;
 
-    m_textureDesc.mipLevelCount = bit_width(std::max(textureSize.width, textureSize.height));
+    m_textureDesc.mipLevelCount = std::clamp(bit_width(std::max(textureSize.width, textureSize.height)), uint32_t(1), maxMipMaps);
     setSize(vec3(textureSize.width, textureSize.height, textureSize.depthOrArrayLayers));
 
     WGPUImageCopyTexture destination {};
@@ -180,21 +181,27 @@ void Texture::writeMipMaps(
 
 void Texture::setImage(const Image& image)
 {
-    assert(image.bytesPerPixel == 4 || image.bytesPerPixel == 3);
-
     if (image.type == Image::Type::R8) 
     {
-        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, 0, image.pixels->data());
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 1, 0, 1, image.pixels->data());
+    }
+
+    if (image.type == Image::Type::RG8)
+    {
+        assert(image.bytesPerPixel == 2 && "Image::Type::RG8 requires 2 bytes per pixel");
+        assert(m_textureDesc.format == WGPUTextureFormat_RG8Unorm && "Texture::Format::RG requires WGPUTextureFormat_RG8Unorm");
+
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 2, 0, 1, image.pixels->data());
     }
 
     if (image.type == Image::Type::RGB)
     {
-        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, image.bytesPerPixel, 0, image.pixels->data());
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, image.bytesPerPixel, 0, 10, image.pixels->data());
     }
 
     if (image.type == Image::Type::RGBA)
     {
-        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 4, 0, image.pixels->data());
+        writeMipMaps({uint32_t(image.width), uint32_t(image.height), 1}, 4, 0, 10, image.pixels->data());
     }
 }
 
@@ -205,12 +212,12 @@ void Texture::setCubemap(const Cubemap& cubemap)
         const Image& image = cubemap.faces(i);
         if (image.bytesPerPixel == 4)
         {
-            writeMipMaps({uint32_t(image.width), uint32_t(image.height), 6}, image.bytesPerPixel, i, image.pixels->data());
+            writeMipMaps({uint32_t(image.width), uint32_t(image.height), 6}, image.bytesPerPixel, i, 10, image.pixels->data());
         }
         else
         {
             const Image rgbaImage = image.toRGBA();
-            writeMipMaps({uint32_t(rgbaImage.width), uint32_t(rgbaImage.height), 6}, rgbaImage.bytesPerPixel, i, rgbaImage.pixels->data());
+            writeMipMaps({uint32_t(rgbaImage.width), uint32_t(rgbaImage.height), 6}, rgbaImage.bytesPerPixel, i, 10, rgbaImage.pixels->data());
         }
     }
 }

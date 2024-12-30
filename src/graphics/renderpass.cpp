@@ -9,6 +9,7 @@ RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget, DepthTarget& shadow
     , m_renderTarget  (renderTarget)
     , m_shadowTarget  (shadowTarget)
     , m_optionalTexture(gpu, Texture::Params{ .format = Texture::Format::RGBA, .usage = Texture::Usage::CopySrcTextureBinding })
+    , m_poissonTexture(gpu, Texture::Params{ .format = Texture::Format::RG, .usage = Texture::Usage::CopySrcTextureBinding })
     , m_uniformsFrame (gpu)
     , m_uniformsModel (gpu)
 {
@@ -20,6 +21,10 @@ RenderPass::RenderPass(Gpu &gpu, RenderTarget &renderTarget, DepthTarget& shadow
     emptyImage.bytesPerPixel = 4;
     emptyImage.type = Image::Type::RGBA;
     m_optionalTexture.setImage(emptyImage);
+
+    Image poissonImage;
+    m_nrPoissonSamples = poissonImage.makePoissonDisc(32, 32, 3);
+    m_poissonTexture.setImage(poissonImage);
 }
 
 RenderPass::~RenderPass()
@@ -41,12 +46,12 @@ void RenderPass::drawCommands(WGPURenderPassEncoder renderPass, const std::vecto
         m_frameData.mipLevelCount = environmentMapTexture->mipLevelCount();
     }
 
-    const auto bindGroupFrame = createFrameBindings(environmentMapTexture);
-    wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroupFrame, 0, nullptr);
-
     m_uniformsFrame.setSize(1);
     m_uniformsFrame.writeChanges(0, m_frameData);
     m_uniformsModel.setSize(renderables.size());
+
+    const auto bindGroupFrame = createFrameBindings(environmentMapTexture);
+    wgpuRenderPassEncoderSetBindGroup(renderPass, 0, bindGroupFrame, 0, nullptr);
 
     int index = 0;
     for (const Renderable* renderable : renderables)
@@ -127,6 +132,7 @@ void RenderPass::renderPre(const RenderParams& params)
     m_frameData.lightPositionWorld   = params.lightPosWorld;
     m_frameData.shadowViewProjection = params.shadowViewProjection;
     m_frameData.hasEnvironmentMap    = params.environmentMap != nullptr ? 1 : 0;
+    m_frameData.nrPoissonSamples     = m_nrPoissonSamples;
 }
 
 void RenderPass::render(const std::vector<const Renderable*>& renderables)
@@ -272,11 +278,13 @@ void RenderPass::createPipeline()
 
 void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 {
-    std::array<WGPUBindGroupLayoutEntry, 4> frameEntries{};
+    std::array<WGPUBindGroupLayoutEntry, 6> frameEntries{};
     fillUniformsBindGroupLayoutEntry            (frameEntries[0], 0, sizeof(FrameData), false);
     fillDepthTextureBindGroupLayoutEntry        (frameEntries[1], 1);
     fillSamplerComparisonBindGroupLayoutEntry   (frameEntries[2], 2);
     fillTextureCubeBindGroupLayoutEntry         (frameEntries[3], 3);
+    fillTextureBindGroupLayoutEntry             (frameEntries[4], 4);
+    fillSamplerBindGroupLayoutEntry             (frameEntries[5], 5);
 
     std::array<WGPUBindGroupLayoutEntry, 7> modelEntries{};
     fillUniformsBindGroupLayoutEntry (modelEntries[0], 0, sizeof(ModelData), true);
@@ -312,7 +320,7 @@ void RenderPass::createLayout(WGPURenderPipelineDescriptor& pipeline)
 
 WGPUBindGroup RenderPass::createFrameBindings(const Texture* environmentMap) const
 { 
-    std::array<WGPUBindGroupEntry, 4> frameBindings{};
+    std::array<WGPUBindGroupEntry, 6> frameBindings{};
     WGPUBindGroupEntry& entry0 = frameBindings[0];
     entry0.nextInChain = nullptr;
     entry0.binding = 0; 
@@ -331,6 +339,14 @@ WGPUBindGroup RenderPass::createFrameBindings(const Texture* environmentMap) con
     WGPUBindGroupEntry& entryCubemap = frameBindings[3];
     entryCubemap.binding = 3;
     entryCubemap.textureView = environmentMap != nullptr ? environmentMap->getTextureView(): m_optionalTexture.getTextureView();
+
+    WGPUBindGroupEntry& entryPoisson = frameBindings[4];
+    entryPoisson.binding = 4;
+    entryPoisson.textureView = m_poissonTexture.getTextureView();
+
+    WGPUBindGroupEntry& entryNearestSampler = frameBindings[5];
+    entryNearestSampler.binding = 5;
+    entryNearestSampler.sampler = m_gpu.m_nearestSampler;
 
     const WGPUBindGroupDescriptor group {
         .layout        = m_bindGroupLayouts[0],

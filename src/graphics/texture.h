@@ -61,6 +61,7 @@ private:
         WGPUExtent3D    textureSize,
         int bytesPerPixel,
         uint32_t layer,
+        uint32_t maxMipMaps,
         const unsigned char* pixelData);
 
 };
