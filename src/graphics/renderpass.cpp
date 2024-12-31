@@ -212,7 +212,6 @@ void RenderPass::createPipeline()
 
     WGPURenderPipelineDescriptor pipelineDesc{};
     pipelineDesc.label = "color pass pipeline";
-    pipelineDesc.nextInChain = nullptr;
 
     setDefault(m_depthStencilState);
     m_depthStencilState.depthCompare          = WGPUCompareFunction_Less;
@@ -223,10 +222,10 @@ void RenderPass::createPipeline()
 
     pipelineDesc.depthStencil = &m_depthStencilState;
 
-    WGPUVertexBufferLayout layout = VertexBuffer::Layout().layout;
+    VertexBuffer::Layout vertexLayout {};
     pipelineDesc.vertex.bufferCount = 1;
-    pipelineDesc.vertex.buffers = &layout;
-    
+    pipelineDesc.vertex.buffers = &vertexLayout.layout;
+ 
     pipelineDesc.vertex.module = shaderModule;
     pipelineDesc.vertex.entryPoint = "vs_main";
     pipelineDesc.vertex.constantCount = 0;
@@ -234,13 +233,8 @@ void RenderPass::createPipeline()
 
     pipelineDesc.primitive.topology         = WGPUPrimitiveTopology_TriangleList;
     pipelineDesc.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
-
-    pipelineDesc.primitive.frontFace = WGPUFrontFace_CCW;
-
-    // But the face orientation does not matter much because we do not
-    // cull (i.e. "hide") the faces pointing away from us (which is often
-    // used for optimization).
-    pipelineDesc.primitive.cullMode = WGPUCullMode_None;
+    pipelineDesc.primitive.frontFace        = WGPUFrontFace_CCW;
+    pipelineDesc.primitive.cullMode         = WGPUCullMode_None;
 
     WGPUFragmentState fragmentState{};
     fragmentState.module = shaderModule;

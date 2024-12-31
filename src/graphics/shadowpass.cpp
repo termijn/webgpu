@@ -97,9 +97,9 @@ void ShadowPass::createPipeline()
 
     pipelineDesc.depthStencil = &m_depthStencilState;
 
-    WGPUVertexBufferLayout layout = VertexBuffer::Layout().layout;
+    VertexBuffer::Layout vertexLayout {};
     pipelineDesc.vertex.bufferCount     = 1;
-    pipelineDesc.vertex.buffers         = &layout;
+    pipelineDesc.vertex.buffers         = &vertexLayout.layout;
     pipelineDesc.vertex.module          = shaderModule;
     pipelineDesc.vertex.entryPoint      = "vs_main";
 
